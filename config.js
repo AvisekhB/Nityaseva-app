@@ -1,15 +1,18 @@
 /****************************************************
- * NITYASEVA CONFIG
+ * NITYASEVA CONFIGURATION
  ****************************************************/
 
-window.NITYASEVA_CONFIG = Object.freeze({
+window.NITYASEVA_CONFIG = {
 
   APP_NAME: "Nityaseva",
 
-  OTP_API:
-    "https://script.google.com/macros/s/AKFycbxmh77rwLxoY1dM270UdKi5KbaWHB1jpoGtuHknVs8SgEvlrvkoK14Wcff9kc0dFlWuA/exec",
+  OTP_ENDPOINT:
+    "https://script.google.com/macros/s/AKfycbxmh77rwLxoY1dM270uUDki5KbaWHB1jpoGtUhKnVs8SgEvlrvkokI4Wcff9kc0dFlWuA/exec",
+
+  OTP_TIMEOUT:
+    20000,
 
   REPORT_BASE_URL:
     window.location.origin + "/r/"
 
-});
+};
