@@ -1,4 +1,5 @@
 window.NITYASEVA_CONFIG = {
+
   APP_NAME: "Nityaseva",
 
   OTP_ENDPOINT:
@@ -6,4 +7,5 @@ window.NITYASEVA_CONFIG = {
 
   REPORT_BASE_URL:
     window.location.origin + "/r/"
+
 };
