@@ -2,28 +2,21 @@
  * NITYASEVA CONFIG
  ****************************************************/
 
+
 window.NITYASEVA_CONFIG = {
 
   APP_NAME: "Nityaseva",
 
-  /*
-   * PUT YOUR CURRENT DEPLOYED GOOGLE APPS SCRIPT
-   * WEB APP URL HERE.
-   *
-   * It MUST end with /exec
-   */
-  OTP_API:
+  OTP_ENDPOINT:
     "https://script.google.com/macros/s/AKfycbxmh77rwLxoY1dM270UdKi5KbaWHB1jpoGtUhkNvS8SgEvlrvkoK14Wcff9kC0dFlWuA/exec",
 
-  OTP_EXPIRY_SECONDS: 600,
+  OTP_TIMEOUT:
+    15000,
 
-  /*
-   * Secure report route.
-   */
+  OTP_EXPIRY_SECONDS:
+    600,
+
   REPORT_BASE_URL:
-    window.location.origin +
-    "/Nityaseva-app/r/",
-
-  DEBUG: true
+    window.location.origin + "/r/"
 
 };
