@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="en">
 
 <head>
@@ -12,6 +11,8 @@
 >
 
 <title>Nityaseva Family Secure Access</title>
+
+<link rel="icon" href="data:,">
 
 <style>
 
@@ -41,8 +42,8 @@ body {
 
   color:
     #173f38;
-}
 
+}
 
 .card {
 
@@ -61,8 +62,8 @@ body {
   box-shadow:
     0 10px 35px
     rgba(0,0,0,.08);
-}
 
+}
 
 .logo {
 
@@ -74,8 +75,8 @@ body {
 
   margin-bottom:
     4px;
-}
 
+}
 
 .tagline {
 
@@ -87,8 +88,8 @@ body {
 
   margin-bottom:
     35px;
-}
 
+}
 
 h1 {
 
@@ -97,8 +98,8 @@ h1 {
 
   margin-bottom:
     10px;
-}
 
+}
 
 .subtitle {
 
@@ -110,8 +111,8 @@ h1 {
 
   margin-bottom:
     25px;
-}
 
+}
 
 label {
 
@@ -123,8 +124,8 @@ label {
 
   margin-bottom:
     8px;
-}
 
+}
 
 input {
 
@@ -145,8 +146,8 @@ input {
 
   margin-bottom:
     15px;
-}
 
+}
 
 input:focus {
 
@@ -155,8 +156,8 @@ input:focus {
 
   border-color:
     #2e806e;
-}
 
+}
 
 button {
 
@@ -189,8 +190,8 @@ button {
 
   margin-bottom:
     12px;
-}
 
+}
 
 button:disabled {
 
@@ -199,8 +200,8 @@ button:disabled {
 
   cursor:
     wait;
-}
 
+}
 
 #otpSection {
 
@@ -209,8 +210,8 @@ button:disabled {
 
   margin-top:
     20px;
-}
 
+}
 
 .message {
 
@@ -225,8 +226,8 @@ button:disabled {
 
   font-size:
     14px;
-}
 
+}
 
 .message.error {
 
@@ -235,8 +236,8 @@ button:disabled {
 
   color:
     #c0392b;
-}
 
+}
 
 .message.success {
 
@@ -245,8 +246,8 @@ button:disabled {
 
   color:
     #20745e;
-}
 
+}
 
 .timer {
 
@@ -261,44 +262,37 @@ button:disabled {
 
   margin:
     4px 0 15px;
+
 }
 
 </style>
 
 </head>
 
-
 <body>
 
-
 <div class="card">
-
 
   <div class="logo">
     🌸 Nityaseva
   </div>
 
-
   <div class="tagline">
     Eternal service, Timeless care.
   </div>
 
-
   <h1>
     Family secure access
   </h1>
-
 
   <div class="subtitle">
     Enter your registered email address
     to receive a secure one-time password.
   </div>
 
-
   <label for="email">
     Registered email
   </label>
-
 
   <input
     id="email"
@@ -307,19 +301,15 @@ button:disabled {
     autocomplete="email"
   >
 
-
   <button id="sendOtpBtn">
     Send OTP
   </button>
 
-
   <div id="otpSection">
-
 
     <label for="otp">
       Enter OTP
     </label>
-
 
     <input
       id="otp"
@@ -330,7 +320,6 @@ button:disabled {
       autocomplete="one-time-code"
     >
 
-
     <div
       id="timer"
       class="timer"
@@ -338,28 +327,21 @@ button:disabled {
       OTP valid for 10:00
     </div>
 
-
     <button id="verifyOtpBtn">
       Verify OTP
     </button>
 
-
   </div>
-
 
   <div
     id="message"
     class="message"
   ></div>
 
-
 </div>
 
-
 <script src="config.js"></script>
-
 <script src="app.js"></script>
-
 
 </body>
 
