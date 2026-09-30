@@ -4,7 +4,7 @@
  ****************************************************/
 
 const NITYASEVA_OTP_URL =
-  "https://script.google.com/macros/s/AKfycbxmh77rLwXoY1dh27QUdKi5kbaWHB1jpoGtH.../exec";
+  "https://script.google.com/macros/s/AKfycbxmh77rwLxoYldM27OuUDki5KbaWHB1jpoGtuHknVs8SgEvlrvkokI4Wcff9kc0dFlWuA/exec";
 
 
 /**
