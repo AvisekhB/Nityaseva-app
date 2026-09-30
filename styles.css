@@ -1,1 +1,142 @@
-:root{--ink:#16332f;--muted:#6b7b78;--bg:#f5f8f7;--card:#fff;--accent:#2c7a68;--line:#dfe9e6;--danger:#a33a3a}*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:var(--ink)}button,input,select,textarea{font:inherit}button{cursor:pointer;border:0;border-radius:10px;padding:11px 15px;background:var(--accent);color:white;font-weight:650}.ghost{background:#eaf1ef;color:var(--ink)}.danger{background:#a33a3a}.shell{max-width:1180px;margin:auto;padding:22px}.top{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:20px}.brand{font-size:26px;font-weight:800}.tag{font-size:12px;color:var(--muted)}.nav{display:flex;gap:8px;flex-wrap:wrap}.nav button{background:white;color:var(--ink);border:1px solid var(--line)}.nav button.active{background:var(--accent);color:white}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:0 3px 15px #16332f0d}.metric{font-size:30px;font-weight:800}.muted{color:var(--muted)}.pill{display:inline-block;border-radius:999px;padding:5px 9px;background:#eaf1ef;font-size:12px}.pill.warn{background:#fff0d7}.pill.ok{background:#e3f4e8}.table{width:100%;border-collapse:collapse}.table th,.table td{text-align:left;padding:11px;border-bottom:1px solid var(--line);vertical-align:top}.form{display:grid;gap:12px}.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}label{font-size:13px;font-weight:650}input,select,textarea{width:100%;padding:11px;border:1px solid var(--line);border-radius:10px;background:white}textarea{min-height:90px}.actions{display:flex;gap:8px;flex-wrap:wrap}.notice{padding:12px;border-radius:10px;background:#edf7f4;margin:12px 0}.error{background:#fff0f0;color:var(--danger)}.login{max-width:460px;margin:10vh auto}.hidden{display:none}@media(max-width:650px){.shell{padding:14px}.top{align-items:flex-start;flex-direction:column}}
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+body {
+  background-color: #f2f5f3;
+  color: #2d3748;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 32px 28px;
+  max-width: 420px;
+  width: 100%;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.logo span {
+  font-size: 24px;
+}
+
+.logo h1 {
+  font-size: 22px;
+  color: #1b4332;
+  font-weight: 700;
+}
+
+.subtitle {
+  font-size: 13px;
+  color: #718096;
+  margin-bottom: 24px;
+}
+
+h2 {
+  font-size: 20px;
+  color: #1b4332;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.desc {
+  font-size: 14px;
+  color: #718096;
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #2d3748;
+  margin-bottom: 6px;
+}
+
+input[type="email"],
+input[type="text"] {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  background-color: #ffffff;
+  margin-bottom: 12px;
+}
+
+input:focus {
+  border-color: #2d6a4f;
+}
+
+button {
+  width: 100%;
+  padding: 12px;
+  background-color: #2d6a4f;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+button:hover {
+  background-color: #1b4332;
+}
+
+button:disabled {
+  background-color: #a0aec0;
+  cursor: not-allowed;
+}
+
+.message {
+  font-size: 13px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  margin-bottom: 16px;
+  display: none;
+}
+
+.message:not(:empty) {
+  display: block;
+}
+
+.message.error {
+  background-color: #fff5f5;
+  color: #e53e3e;
+  border: 1px solid #fed7d7;
+}
+
+.message.success {
+  background-color: #f0fff4;
+  color: #38a169;
+  border: 1px solid #c6f6d5;
+}
+
+.timer {
+  font-size: 12px;
+  color: #e53e3e;
+  margin-bottom: 8px;
+}
