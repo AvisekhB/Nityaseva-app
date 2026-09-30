@@ -62,6 +62,10 @@ let otpTimer = null;
 
 let otpSecondsRemaining = 0;
 
+if (!OTP_ENDPOINT) {
+  console.error("Nityaseva OTP endpoint is missing.");
+  showMessage("OTP service is not configured.", "error");
+}
 
 /* ==================================================
    INITIAL UI
