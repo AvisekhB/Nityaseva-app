@@ -1,8 +1,11 @@
-window.NITYASEVA_CONFIG={
-  APP_NAME:'Nityaseva',
-  // Paste your deployed Google Apps Script Web App URL ending in /exec here.
-  OTP_ENDPOINT:"https://script.google.com/macros/s/AKfycbxmh77rwLxoYldM27OuUDki5KbaWHB1jpoGtuHknVs8SgEvlrvkokI4Wcff9kc0dFlWuA/exec",
+window.NITYASEVA_CONFIG = {
 
-  REPORT_BASE_URL:location.origin+"/r/"
+  APP_NAME: "Nityaseva",
+
+  OTP_ENDPOINT:
+    "https://script.google.com/macros/s/AKfycbxmh77rwLxoY1dM270Udki5KbaWHB1jpoGtuHknVs8SgEvlrvkoK14Wcff9kc0dFlWuA/exec",
+
+  REPORT_BASE_URL:
+    location.origin + "/r/"
+
 };
-
