@@ -1,29 +1,637 @@
-const C=window.NITYASEVA_CONFIG||{};
-const demo={
- seniors:[{id:'SEN-2026-00031',name:'Mrs. Ananya Sen',age:72,phone:'+91 98XXXXXX12',family:'Rahul Sen'},{id:'SEN-2026-00032',name:'Mr. Arun Das',age:76,phone:'+91 99XXXXXX43',family:'Mita Das'}],
- appointments:[{id:'APT-001',senior:'Mrs. Ananya Sen',type:'Nurse Home Visit',staff:'Nurse Priya',date:'2026-10-05',time:'10:00',mode:'Home',status:'Confirmed',reason:'Monthly assessment'},{id:'APT-002',senior:'Mr. Arun Das',type:'Doctor Teleconsultation',staff:'Dr. Mehta',date:'2026-10-05',time:'15:00',mode:'Video',status:'Confirmed',reason:'Follow-up'}],
- visits:[{id:'VIS-001',senior:'Mrs. Ananya Sen',nurse:'Nurse Priya',status:'Completed',date:'2026-09-29'}],
- reviews:[]
-};
-let state={user:null,tab:'home'};
-const $=s=>document.querySelector(s); const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-function render(){document.getElementById('app').innerHTML=state.user?dashboard():login();}
-function login(){return `<main class="shell login"><div class="card"><div class="brand">🌸 Nityaseva</div><div class="tag">Eternal service, Timeless care.</div><h2>Family secure access</h2><p class="muted">Pilot mode uses Google Apps Script Email OTP. Connect your endpoint in <code>config.js</code>.</p><form id="otp" class="form"><label>Registered email<input id="email" type="email" required placeholder="family@example.com"></label><button>Send OTP</button></form><div id="otpbox" class="hidden notice"><form id="verify" class="form"><label>Enter 6-digit OTP<input id="code" inputmode="numeric" maxlength="6" required></label><button>Verify OTP</button></form><button id="demo" class="ghost" style="margin-top:8px">Use demo access</button></div><div id="msg"></div></div></main>`}
-function dashboard(){return `<main class="shell"><div class="top"><div><div class="brand">🌸 Nityaseva</div><div class="tag">Senior care operations</div></div><button class="ghost" onclick="logout()">Sign out</button></div><div class="nav">${['home','appointments','nurse','doctor','reports'].map(x=>`<button class="${state.tab===x?'active':''}" onclick="state.tab='${x}';render()">${x[0].toUpperCase()+x.slice(1)}</button>`).join('')}</div><div style="height:18px"></div>${view(state.tab)}</main>`}
-function view(t){if(t==='home')return home();if(t==='appointments')return appointments();if(t==='nurse')return nurse();if(t==='doctor')return doctor();return reports()}
-function home(){return `<div class="grid"><div class="card"><div class="muted">Seniors</div><div class="metric">${demo.seniors.length}</div></div><div class="card"><div class="muted">Upcoming appointments</div><div class="metric">${demo.appointments.length}</div></div><div class="card"><div class="muted">Completed visits</div><div class="metric">${demo.visits.length}</div></div></div><div style="height:16px"></div><div class="card"><h3>Care journey</h3><p>Nurse home visit → 20-point assessment → doctor review/teleconsultation → doctor feedback → secure report → family follow-up.</p></div>`}
-function appointments(){return `<div class="card"><div class="top"><div><h2>Appointments</h2><span class="muted">Nurse + doctor integrated scheduling</span></div><button onclick="newAppointment()">Book appointment</button></div><table class="table"><thead><tr><th>Senior</th><th>Type</th><th>Staff</th><th>Date / time</th><th>Status</th><th></th></tr></thead><tbody>${demo.appointments.map(a=>`<tr><td>${esc(a.senior)}</td><td>${esc(a.type)}<br><span class="muted">${esc(a.mode)}</span></td><td>${esc(a.staff)}</td><td>${esc(a.date)} ${esc(a.time)}</td><td><span class="pill ok">${esc(a.status)}</span></td><td><button class="ghost" onclick="reschedule('${a.id}')">Reschedule</button></td></tr>`).join('')}</tbody></table></div>`}
-function newAppointment(){const s=prompt('Senior: '+demo.seniors.map(x=>x.name).join(' / '));if(!s)return;const type=prompt('Type: Nurse Home Visit / Doctor Teleconsultation', 'Nurse Home Visit');const date=prompt('Date YYYY-MM-DD','2026-10-06');const time=prompt('Time HH:MM','10:00');demo.appointments.push({id:'APT-'+String(demo.appointments.length+1).padStart(3,'0'),senior:s,type,staff:type.startsWith('Doctor')?'Dr. Mehta':'Nurse Priya',date,time,mode:type.startsWith('Doctor')?'Video':'Home',status:'Requested',reason:'Family booking'});render()}
-function reschedule(id){const a=demo.appointments.find(x=>x.id===id);const d=prompt('New date',a.date);const t=prompt('New time',a.time);if(d&&t){a.date=d;a.time=t;a.status='Rescheduled';render()}}
-const vitals=['Blood pressure','Heart rate / pulse','SpO2','Respiratory rate','Temperature','Fasting glucose','Random/post-meal glucose','Weight','Height','BMI','Waist circumference','Pain score','Level of consciousness','Fall risk','Mobility status','Respiratory symptoms','Edema','Hydration','Medication adherence','Mental/cognitive observation'];
-function nurse(){return `<div class="card"><h2>Nurse field visit</h2><p class="muted">Complete the structured 20-point assessment. Values are for clinical review and do not automatically diagnose.</p><form id="visitform" class="form"><div class="row">${vitals.map((v,i)=>`<label>${i+1}. ${v}<input name="v${i}" placeholder="Enter observation"></label>`).join('')}</div><label>Nurse notes<textarea name="notes"></textarea></label><div class="actions"><button>Complete visit</button><button type="button" class="ghost" onclick="requestDoctorReview()">Request doctor review</button></div></form></div>`}
-function requestDoctorReview(){demo.reviews.push({id:'REV-'+(demo.reviews.length+1),senior:demo.seniors[0].name,priority:'Routine',status:'Pending doctor review',created:new Date().toISOString().slice(0,10)});alert('Doctor review request created.');}
-function doctor(){return `<div class="grid"><div class="card"><h2>Doctor queue</h2>${demo.reviews.length?demo.reviews.map(r=>`<div class="notice"><b>${esc(r.senior)}</b><br>${esc(r.priority)} · ${esc(r.status)}<br><button onclick="completeReview('${r.id}')">Open review</button></div>`).join(''):'<p class="muted">No pending nurse escalations.</p>'}</div><div class="card"><h2>Doctor appointments</h2>${demo.appointments.filter(a=>a.type.startsWith('Doctor')).map(a=>`<div class="notice"><b>${esc(a.senior)}</b><br>${a.date} ${a.time}<br>${a.mode}<br><span class="pill">${a.status}</span></div>`).join('')}</div></div>`}
-function completeReview(id){const r=demo.reviews.find(x=>x.id===id);const note=prompt('Doctor feedback');if(note){r.status='Completed';r.feedback=note;alert('Doctor feedback saved and can be included in the report.');render()}}
-function reports(){return `<div class="card"><h2>Secure reports</h2><p class="muted">Reports are accessed through temporary application links, not public PDF URLs.</p><div class="notice"><b>Example secure report</b><br>${C.REPORT_BASE_URL}DEMO-REPORT-TOKEN<br><span class="muted">In production: OTP → family authorization → expiry/revocation → short-lived file URL → access log.</span></div><button onclick="alert('Connect create-report-link Edge Function to generate a real token.')">Generate secure report link</button></div>`}
-function logout(){state.user=null;render()}
-let otpFrameReady=false;
-function ensureOtpFrame(){return new Promise(resolve=>{let f=document.getElementById('nityasevaOtpFrame');if(f){resolve(f);return}f=document.createElement('iframe');f.id='nityasevaOtpFrame';f.name='nityasevaOtpFrame';f.title='Nityaseva OTP service';f.style.display='none';document.body.appendChild(f);resolve(f)})}
-function postOtp(action,payload){return new Promise(async(resolve,reject)=>{if(!C.OTP_ENDPOINT) return reject(new Error('OTP_ENDPOINT is empty. Configure Apps Script web-app URL in config.js.'));await ensureOtpFrame();const requestId='otp_'+Date.now()+'_'+Math.random().toString(36).slice(2);const timer=setTimeout(()=>{window.removeEventListener('message',onMessage);reject(new Error('OTP service timed out. Check the Apps Script deployment and Web App URL.'))},20000);function onMessage(ev){if(ev.data&&ev.data.source==='nityaseva-otp'&&ev.data.requestId===requestId){clearTimeout(timer);window.removeEventListener('message',onMessage);if(ev.data.ok)resolve(ev.data);else reject(new Error(ev.data.message||'OTP request failed'))}}window.addEventListener('message',onMessage);const form=document.createElement('form');form.method='POST';form.action=C.OTP_ENDPOINT;form.target='nityasevaOtpFrame';form.style.display='none';[['action',action],['email',payload.email],['otp',payload.otp||''],['requestId',requestId],['parentOrigin',window.location.origin]].forEach(([name,value])=>{const input=document.createElement('input');input.type='hidden';input.name=name;input.value=value;form.appendChild(input)});document.body.appendChild(form);form.submit();setTimeout(()=>form.remove(),1000)})}
-document.addEventListener('submit',async e=>{if(e.target.id==='otp'){e.preventDefault();const email=$('#email').value.trim();$('#msg').innerHTML='<div class="notice">Sending OTP…</div>';try{const out=await postOtp('sendOtp',{email});if(!out.ok)throw new Error(out.message||'OTP failed');$('#otpbox').classList.remove('hidden');$('#msg').innerHTML='<div class="notice">OTP sent. Check your email.</div>'}catch(err){$('#msg').innerHTML='<div class="notice error">'+esc(err.message)+'</div>'}}if(e.target.id==='verify'){e.preventDefault();const email=$('#email').value.trim(),code=$('#code').value.trim();$('#msg').innerHTML='<div class="notice">Verifying OTP…</div>';try{const out=await postOtp('verifyOtp',{email,otp:code});if(!out.ok)throw new Error(out.message||'Verification failed');state.user={email};render()}catch(err){$('#msg').innerHTML='<div class="notice error">'+esc(err.message)+'</div>'}}if(e.target.id==='visitform'){e.preventDefault();demo.visits.push({id:'VIS-'+(demo.visits.length+1),senior:demo.seniors[0].name,nurse:'Nurse Priya',status:'Completed',date:new Date().toISOString().slice(0,10)});alert('Visit saved in pilot UI. Connect the Supabase/Sheets adapter to persist it.');state.tab='home';render()}});
-document.addEventListener('click',e=>{if(e.target.id==='demo'){state.user={email:'demo@nityaseva.in'};render()}});render();
+// ==========================================
+// NITYASEVA FAMILY OTP - FINAL FRONTEND
+// ==========================================
+
+const CONFIG = window.NITYASEVA_CONFIG || {};
+
+let currentEmail = "";
+let otpTimer = null;
+let otpSeconds = 600;
+
+
+// ------------------------------------------
+// Get HTML elements safely
+// ------------------------------------------
+
+const emailInput = document.getElementById("email");
+const otpInput = document.getElementById("otp");
+
+const sendOtpBtn = document.getElementById("sendOtpBtn");
+const verifyOtpBtn = document.getElementById("verifyOtpBtn");
+
+const otpSection = document.getElementById("otpSection");
+const messageBox = document.getElementById("message");
+const timerBox = document.getElementById("timer");
+
+
+// ------------------------------------------
+// Message
+// ------------------------------------------
+
+function showMessage(text, type = "error") {
+
+    if (!messageBox) {
+        console.log(text);
+        return;
+    }
+
+    messageBox.textContent = text;
+
+    messageBox.className =
+        "message " + type;
+}
+
+
+// ------------------------------------------
+// Validate email
+// ------------------------------------------
+
+function validEmail(email) {
+
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+}
+
+
+// ------------------------------------------
+// Apps Script JSONP
+// ------------------------------------------
+
+function callOtpApi(action, params = {}) {
+
+    return new Promise((resolve, reject) => {
+
+        const endpoint = CONFIG.OTP_ENDPOINT;
+
+        if (!endpoint) {
+
+            reject(
+                new Error(
+                    "OTP service URL is missing in config.js"
+                )
+            );
+
+            return;
+        }
+
+
+        const callbackName =
+            "nityasevaCallback_" +
+            Date.now() +
+            "_" +
+            Math.floor(Math.random() * 100000);
+
+
+        const script =
+            document.createElement("script");
+
+
+        const query =
+            new URLSearchParams();
+
+
+        query.set("action", action);
+
+        query.set("callback", callbackName);
+
+
+        Object.keys(params).forEach(key => {
+
+            query.set(
+                key,
+                params[key]
+            );
+
+        });
+
+
+        let finished = false;
+
+
+        const timeout =
+            setTimeout(() => {
+
+                if (finished) return;
+
+                finished = true;
+
+                cleanup();
+
+                reject(
+                    new Error(
+                        "OTP service timed out. Check the Apps Script Web App URL."
+                    )
+                );
+
+            }, 30000);
+
+
+        function cleanup() {
+
+            clearTimeout(timeout);
+
+            if (script.parentNode) {
+
+                script.parentNode.removeChild(
+                    script
+                );
+
+            }
+
+            try {
+
+                delete window[callbackName];
+
+            } catch (e) {
+
+                window[callbackName] =
+                    undefined;
+
+            }
+
+        }
+
+
+        window[callbackName] =
+            function(data) {
+
+                if (finished) return;
+
+                finished = true;
+
+                cleanup();
+
+                resolve(data);
+
+            };
+
+
+        script.onerror =
+            function() {
+
+                if (finished) return;
+
+                finished = true;
+
+                cleanup();
+
+                reject(
+                    new Error(
+                        "Unable to connect to Nityaseva OTP service."
+                    )
+                );
+
+            };
+
+
+        script.src =
+            endpoint +
+            "?" +
+            query.toString();
+
+
+        document.body.appendChild(
+            script
+        );
+
+    });
+
+}
+
+
+// ------------------------------------------
+// SEND OTP
+// ------------------------------------------
+
+async function sendOtp() {
+
+    const email =
+        emailInput
+            ? emailInput.value
+                .trim()
+                .toLowerCase()
+            : "";
+
+
+    if (!email) {
+
+        showMessage(
+            "Please enter your registered email."
+        );
+
+        return;
+    }
+
+
+    if (!validEmail(email)) {
+
+        showMessage(
+            "Please enter a valid email address."
+        );
+
+        return;
+    }
+
+
+    currentEmail = email;
+
+
+    if (sendOtpBtn) {
+
+        sendOtpBtn.disabled = true;
+
+        sendOtpBtn.textContent =
+            "Sending...";
+    }
+
+
+    showMessage(
+        "Sending OTP...",
+        "success"
+    );
+
+
+    try {
+
+        const result =
+            await callOtpApi(
+                "sendOtp",
+                {
+                    email: email
+                }
+            );
+
+
+        console.log(
+            "OTP response:",
+            result
+        );
+
+
+        if (!result.success) {
+
+            throw new Error(
+                result.error ||
+                "Unable to send OTP."
+            );
+        }
+
+
+        if (otpSection) {
+
+            otpSection.style.display =
+                "block";
+        }
+
+
+        showMessage(
+            "OTP sent successfully. Please check your email.",
+            "success"
+        );
+
+
+        startTimer();
+
+
+        if (otpInput) {
+
+            otpInput.focus();
+
+        }
+
+
+    } catch (error) {
+
+        console.error(
+            "OTP error:",
+            error
+        );
+
+
+        showMessage(
+            error.message ||
+            "Unable to send OTP."
+        );
+
+
+    } finally {
+
+        if (sendOtpBtn) {
+
+            sendOtpBtn.disabled =
+                false;
+
+            sendOtpBtn.textContent =
+                "Send OTP";
+        }
+
+    }
+
+}
+
+
+// ------------------------------------------
+// VERIFY OTP
+// ------------------------------------------
+
+async function verifyOtp() {
+
+    const email =
+        currentEmail ||
+        (
+            emailInput
+                ? emailInput.value
+                    .trim()
+                    .toLowerCase()
+                : ""
+        );
+
+
+    const otp =
+        otpInput
+            ? otpInput.value.trim()
+            : "";
+
+
+    if (!email) {
+
+        showMessage(
+            "Please enter your registered email."
+        );
+
+        return;
+    }
+
+
+    if (!/^\d{6}$/.test(otp)) {
+
+        showMessage(
+            "Please enter the 6-digit OTP."
+        );
+
+        return;
+    }
+
+
+    if (verifyOtpBtn) {
+
+        verifyOtpBtn.disabled =
+            true;
+
+        verifyOtpBtn.textContent =
+            "Verifying...";
+    }
+
+
+    try {
+
+        const result =
+            await callOtpApi(
+                "verifyOtp",
+                {
+                    email: email,
+                    otp: otp
+                }
+            );
+
+
+        console.log(
+            "Verify response:",
+            result
+        );
+
+
+        if (!result.success) {
+
+            throw new Error(
+                result.error ||
+                "OTP verification failed."
+            );
+        }
+
+
+        // Store pilot session
+
+        sessionStorage.setItem(
+            "nityaseva_email",
+            email
+        );
+
+
+        sessionStorage.setItem(
+            "nityaseva_session",
+            result.sessionToken || ""
+        );
+
+
+        showMessage(
+            "OTP verified successfully.",
+            "success"
+        );
+
+
+        clearInterval(
+            otpTimer
+        );
+
+
+        /*
+         * For now, stay on this page.
+         *
+         * This prevents another missing
+         * dashboard.html error.
+         */
+
+        if (verifyOtpBtn) {
+
+            verifyOtpBtn.textContent =
+                "Verified ✓";
+        }
+
+
+        if (emailInput) {
+
+            emailInput.disabled =
+                true;
+        }
+
+
+        if (otpInput) {
+
+            otpInput.disabled =
+                true;
+        }
+
+
+    } catch (error) {
+
+        console.error(
+            "Verification error:",
+            error
+        );
+
+
+        showMessage(
+            error.message ||
+            "OTP verification failed."
+        );
+
+
+    } finally {
+
+        if (
+            verifyOtpBtn &&
+            verifyOtpBtn.textContent !==
+            "Verified ✓"
+        ) {
+
+            verifyOtpBtn.disabled =
+                false;
+
+            verifyOtpBtn.textContent =
+                "Verify OTP";
+        }
+
+    }
+
+}
+
+
+// ------------------------------------------
+// TIMER
+// ------------------------------------------
+
+function startTimer() {
+
+    clearInterval(
+        otpTimer
+    );
+
+
+    otpSeconds = 600;
+
+
+    updateTimer();
+
+
+    otpTimer =
+        setInterval(() => {
+
+            otpSeconds--;
+
+            updateTimer();
+
+
+            if (otpSeconds <= 0) {
+
+                clearInterval(
+                    otpTimer
+                );
+
+                showMessage(
+                    "OTP expired. Please request a new OTP."
+                );
+
+            }
+
+        }, 1000);
+
+}
+
+
+function updateTimer() {
+
+    if (!timerBox) return;
+
+
+    const minutes =
+        Math.floor(
+            otpSeconds / 60
+        );
+
+
+    const seconds =
+        otpSeconds % 60;
+
+
+    timerBox.textContent =
+        "OTP valid for " +
+        minutes +
+        ":" +
+        String(seconds)
+            .padStart(2, "0");
+
+}
+
+
+// ------------------------------------------
+// Button events
+// ------------------------------------------
+
+if (sendOtpBtn) {
+
+    sendOtpBtn.addEventListener(
+        "click",
+        sendOtp
+    );
+
+}
+
+
+if (verifyOtpBtn) {
+
+    verifyOtpBtn.addEventListener(
+        "click",
+        verifyOtp
+    );
+
+}
+
+
+// ------------------------------------------
+// Enter key
+// ------------------------------------------
+
+if (emailInput) {
+
+    emailInput.addEventListener(
+        "keydown",
+        function(event) {
+
+            if (
+                event.key === "Enter"
+            ) {
+
+                sendOtp();
+
+            }
+
+        }
+    );
+
+}
+
+
+if (otpInput) {
+
+    otpInput.addEventListener(
+        "keydown",
+        function(event) {
+
+            if (
+                event.key === "Enter"
+            ) {
+
+                verifyOtp();
+
+            }
+
+        }
+    );
+
+}
+
+
+console.log(
+    "Nityaseva OTP frontend loaded."
+);
