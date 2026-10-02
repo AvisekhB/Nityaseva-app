@@ -1,66 +1,52 @@
-import { supabase } from './supabaseClient.js';
+import { callApi } from './dataService.js';
 
 export async function sendOtp(email) {
-  const { error } = await supabase.auth.signInWithOtp({
-    email: email,
-    options: {
-      shouldCreateUser: true
-    }
-  });
-  if (error) throw error;
-  return true;
+  return await callApi('sendOtpEmail', { email: email });
 }
 
-export async function verifyOtp(email, token) {
-  const { data, error } = await supabase.auth.verifyOtp({
-    email: email,
-    token: token,
-    type: 'email'
-  });
-  if (error) throw error;
-  return data;
-}
-
-export async function getCurrentUserProfile() {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single();
-
-  if (error) {
-    console.error('Error fetching profile:', error);
-    return { id: user.id, email: user.email, role: 'family' };
+export async function verifyOtp(email, code) {
+  const result = await callApi('verifyOtpEmail', { email: email, code: code });
+  
+  if (result.success && result.token) {
+    localStorage.setItem('nityaseva_token', result.token);
+    localStorage.setItem('nityaseva_role', result.role);
+    localStorage.setItem('nityaseva_user', JSON.stringify(result.profile || {}));
   }
-  return data;
+  
+  return result;
+}
+
+export function getCurrentUserProfile() {
+  const userStr = localStorage.getItem('nityaseva_user');
+  if (!userStr) return null;
+  const user = JSON.parse(userStr);
+  user.role = localStorage.getItem('nityaseva_role') || 'family';
+  return user;
 }
 
 export async function requireAuth(expectedRole = null) {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) {
+  const token = localStorage.getItem('nityaseva_token');
+  const role = localStorage.getItem('nityaseva_role');
+
+  if (!token) {
     window.location.href = 'index.html';
     return null;
   }
 
-  const profile = await getCurrentUserProfile();
-  if (!profile) {
-    window.location.href = 'index.html';
-    return null;
-  }
+  const profile = getCurrentUserProfile();
 
-  if (expectedRole && profile.role !== expectedRole && profile.role !== 'admin') {
+  if (expectedRole && role !== expectedRole && role !== 'admin') {
     alert('Access restricted to ' + expectedRole + ' role.');
-    window.location.href = profile.role + '.html';
+    window.location.href = role + '.html';
     return null;
   }
 
   return profile;
 }
 
-export async function signOut() {
-  await supabase.auth.signOut();
+export function signOut() {
+  localStorage.removeItem('nityaseva_token');
+  localStorage.removeItem('nityaseva_role');
+  localStorage.removeItem('nityaseva_user');
   window.location.href = 'index.html';
 }
