@@ -1,214 +1,345 @@
-import React, { useState } from 'react';
-import { DataService } from '../services/dataService';
+import React, { useState, useEffect } from 'react';
+import { DataService } from './services/dataService';
+import NurseWorkflow from './components/NurseWorkflow';
 
-export default function NurseWorkflow({ seniorId = "SEN-001", loggedBy = "nurse@nityaseva.org" }) {
-  const [formData, setFormData] = useState({
-Vitals_BP: '',
-    Heart_Rate: '',       // Updated from Pulse
-    SpO2: '',
-    Resp_Rate: '',
-    Temp: '',
-    Fasting_Glucose: '',
-    Glucose_PP: '',       // Updated from Random_Glucose
-    Weight: '',
-    Height: '',
-    BMI: '',
-    Waist_Circ: '',
-    Pain_Score: '0',
-    Consciousness: 'Alert',
-    Fall_Risk: 'Low',
-    Mobility: 'Independent',
-    Resp_Symptoms: 'None',
-    Edema: 'None',
-    Hydration: 'Normal',
-    Med_Adherence: 'Good',
-    Cognitive_Obs: '',
-    Notes: ''            // Added explicit Notes field''
-  });
+export default function App() {
+  const [role, setRole] = useState('ADMIN');
+  const [seniorList, setSeniorList] = useState([]);
+  const [activeSeniorId, setActiveSeniorId] = useState('SEN-001');
+  const [seniorData, setSeniorData] = useState({ Full_Name: 'Mrs. Kamala Sharma', Age: 78 });
+  const [entitlements, setEntitlements] = useState({ Nurse_Used: 1, Nurse_Allowed: 2, Doctor_Used: 0, Doctor_Allowed: 1 });
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [loading, setLoading] = useState(false);
 
-  const [status, setStatus] = useState('');
+  // Verification & Work Order state
+  const [woId, setWoId] = useState('WO-849201');
+  const [code, setCode] = useState('');
+  const [message, setMessage] = useState('');
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => {
-      const updated = { ...prev, [name]: value };
-      
-      // Auto-calculate BMI if Weight (kg) and Height (cm) are provided
-      if ((name === 'Weight' || name === 'Height') && updated.Weight && updated.Height) {
-        const heightM = parseFloat(updated.Height) / 100;
-        if (heightM > 0) {
-          updated.BMI = (parseFloat(updated.Weight) / (heightM * heightM)).toFixed(1);
+  // Sample static work orders table data
+  const [workOrders, setWorkOrders] = useState([
+    { id: 'WO-849201', seniorId: 'SEN-001', type: 'Nurse Visit #1', assignedTo: 'Nurse Anjali', status: 'IN_PROGRESS', startCode: '4821', endCode: '9104' },
+    { id: 'WO-849202', seniorId: 'SEN-001', type: 'Doctor Consult #1', assignedTo: 'Dr. R. Mehta', status: 'SCHEDULED', startCode: '3190', endCode: '7742' },
+    { id: 'WO-849203', seniorId: 'SEN-002', type: 'Nurse Visit #1', assignedTo: 'Nurse Suresh', status: 'COMPLETED', startCode: '1122', endCode: '3344' },
+    { id: 'WO-849204', seniorId: 'SEN-003', type: 'Doctor Consult #1', assignedTo: 'Dr. S. Roy', status: 'SCHEDULED', startCode: '5566', endCode: '7788' }
+  ]);
+
+  // 1. Fetch senior list on initial app load
+  useEffect(() => {
+    async function loadSeniorList() {
+      try {
+        const list = await DataService.getSeniors();
+        if (Array.isArray(list) && list.length > 0) {
+          setSeniorList(list);
+          const firstId = list[0].Senior_ID || list[0].id;
+          if (firstId) setActiveSeniorId(firstId);
         }
+      } catch (err) {
+        console.error("Error loading senior list:", err);
       }
-      return updated;
-    });
-  };
+    }
+    loadSeniorList();
+  }, []);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setStatus('Saving assessment...');
+  // 2. Fetch senior details & entitlements whenever activeSeniorId changes
+  useEffect(() => {
+    if (!activeSeniorId) return;
+
+    async function loadSeniorDetails() {
+      setLoading(true);
+      try {
+        const senior = await DataService.getSenior(activeSeniorId);
+        if (senior) setSeniorData(senior);
+
+        const entitlementData = await DataService.getEntitlements(activeSeniorId, '10-2026');
+        if (entitlementData) setEntitlements(entitlementData);
+      } catch (err) {
+        console.error("Error loading senior profile:", err);
+      } font-medium {
+        setLoading(false);
+      }
+    }
+
+    loadSeniorDetails();
+  }, [activeSeniorId]);
+
+  // Handle Work Order Code Verification
+  const handleVerify = async (type) => {
     try {
-      const payload = {
-        Senior_ID: seniorId,
-        Logged_By: loggedBy,
-        ...formData
-      };
-      await DataService.saveAssessment(payload);
-      setStatus('Success: 20-Point Assessment logged successfully!');
+      setMessage('');
+      const res = type === 'START'
+        ? await DataService.verifyStartCode(woId, code, 'caregiver@nityaseva.org')
+        : await DataService.verifyEndCode(woId, code, 'caregiver@nityaseva.org');
+
+      setMessage(`Success: ${type} code verified. Status: ${res?.status || 'Updated'}`);
+      setCode('');
     } catch (err) {
-      setStatus(`Error: ${err.message}`);
+      setMessage(`Error: ${err.message || 'Verification failed'}`);
     }
   };
 
+  // Filter work orders relevant to selected senior
+  const activeWorkOrders = workOrders.filter(wo => wo.seniorId === activeSeniorId);
+
   return (
-    <div className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow border space-y-6">
-      <h2 className="text-2xl font-bold text-teal-800 border-b pb-2">20-Point Nurse Assessment</h2>
-      {status && <div className="p-3 bg-teal-50 text-teal-800 rounded font-medium">{status}</div>}
-
-      <form onSubmit={handleSubmit} className="space-y-6">
-        
-        {/* Section 1: Vital Signs */}
-        <fieldset className="border p-4 rounded space-y-4">
-          <legend className="font-semibold text-teal-700 px-2">1. Primary Vitals</legend>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium">1. BP (mmHg)</label>
-              <input type="text" name="Vitals_BP" placeholder="120/80" value={formData.Vitals_BP} onChange={handleChange} className="w-full border p-2 rounded" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium">2. Heart Rate (bpm)</label>
-              <input type="number" name="Pulse" placeholder="72" value={formData.Pulse} onChange={handleChange} className="w-full border p-2 rounded" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium">3. SpO2 (%)</label>
-              <input type="number" name="SpO2" placeholder="98" value={formData.SpO2} onChange={handleChange} className="w-full border p-2 rounded" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium">4. Respiratory Rate (/min)</label>
-              <input type="number" name="Resp_Rate" placeholder="16" value={formData.Resp_Rate} onChange={handleChange} className="w-full border p-2 rounded" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium">5. Temperature (°F)</label>
-              <input type="number" step="0.1" name="Temp" placeholder="98.6" value={formData.Temp} onChange={handleChange} className="w-full border p-2 rounded" />
-            </div>
+    <div className="min-h-screen bg-slate-100 text-slate-800 font-sans">
+      {/* HEADER SECTION */}
+      <header className="bg-teal-800 text-white px-6 py-4 flex flex-col sm:flex-row justify-between items-center shadow-md gap-4">
+        <div className="flex items-center space-x-3">
+          <div className="bg-teal-600 p-2 rounded-lg">
+            <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" />
+            </svg>
           </div>
-        </fieldset>
-
-        {/* Section 2: Blood Glucose */}
-        <fieldset className="border p-4 rounded space-y-4">
-          <legend className="font-semibold text-teal-700 px-2">2. Blood Glucose</legend>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium">6. Fasting Glucose (mg/dL)</label>
-              <input type="number" name="Fasting_Glucose" placeholder="95" value={formData.Fasting_Glucose} onChange={handleChange} className="w-full border p-2 rounded" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium">7. Random / Post-meal Glucose (mg/dL)</label>
-              <input type="number" name="Random_Glucose" placeholder="140" value={formData.Random_Glucose} onChange={handleChange} className="w-full border p-2 rounded" />
-            </div>
-          </div>
-        </fieldset>
-
-        {/* Section 3: Anthropometrics */}
-        <fieldset className="border p-4 rounded space-y-4">
-          <legend className="font-semibold text-teal-700 px-2">3. Body Measurements</legend>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <label className="block text-sm font-medium">8. Weight (kg)</label>
-              <input type="number" step="0.1" name="Weight" placeholder="65" value={formData.Weight} onChange={handleChange} className="w-full border p-2 rounded" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium">9. Height (cm)</label>
-              <input type="number" step="0.1" name="Height" placeholder="165" value={formData.Height} onChange={handleChange} className="w-full border p-2 rounded" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium">10. BMI (Auto)</label>
-              <input type="text" name="BMI" value={formData.BMI} readOnly className="w-full border p-2 rounded bg-slate-100 font-bold" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium">11. Waist Circumference (cm)</label>
-              <input type="number" step="0.1" name="Waist_Circ" placeholder="85" value={formData.Waist_Circ} onChange={handleChange} className="w-full border p-2 rounded" />
-            </div>
-          </div>
-        </fieldset>
-
-        {/* Section 4: Clinical Observations */}
-        <fieldset className="border p-4 rounded space-y-4">
-          <legend className="font-semibold text-teal-700 px-2">4. Physical & Clinical Observation</legend>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium">12. Pain Score (0–10)</label>
-              <select name="Pain_Score" value={formData.Pain_Score} onChange={handleChange} className="w-full border p-2 rounded">
-                {[...Array(11).keys()].map(num => <option key={num} value={num}>{num}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium">13. Level of Consciousness</label>
-              <select name="Consciousness" value={formData.Consciousness} onChange={handleChange} className="w-full border p-2 rounded">
-                <option value="Alert">Alert</option>
-                <option value="Drowsy">Drowsy</option>
-                <option value="Confused">Confused</option>
-                <option value="Unresponsive">Unresponsive</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium">14. Fall Risk</label>
-              <select name="Fall_Risk" value={formData.Fall_Risk} onChange={handleChange} className="w-full border p-2 rounded">
-                <option value="Low">Low</option>
-                <option value="Moderate">Moderate</option>
-                <option value="High">High</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium">15. Mobility Status</label>
-              <select name="Mobility" value={formData.Mobility} onChange={handleChange} className="w-full border p-2 rounded">
-                <option value="Independent">Independent</option>
-                <option value="Assistance Needed">Assistance Needed</option>
-                <option value="Wheelchair Bound">Wheelchair Bound</option>
-                <option value="Bedridden">Bedridden</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium">16. Respiratory Symptoms</label>
-              <input type="text" name="Resp_Symptoms" placeholder="None / Cough / Wheezing" value={formData.Resp_Symptoms} onChange={handleChange} className="w-full border p-2 rounded" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium">17. Edema</label>
-              <select name="Edema" value={formData.Edema} onChange={handleChange} className="w-full border p-2 rounded">
-                <option value="None">None</option>
-                <option value="Pedal (1+)">Pedal (1+)</option>
-                <option value="Moderate (2+)">Moderate (2+)</option>
-                <option value="Severe (3+)">Severe (3+)</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium">18. Hydration Status</label>
-              <select name="Hydration" value={formData.Hydration} onChange={handleChange} className="w-full border p-2 rounded">
-                <option value="Normal">Normal</option>
-                <option value="Mild Dehydration">Mild Dehydration</option>
-                <option value="Severe Dehydration">Severe Dehydration</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium">19. Medication Adherence</label>
-              <select name="Med_Adherence" value={formData.Med_Adherence} onChange={handleChange} className="w-full border p-2 rounded">
-                <option value="Good">Good (100%)</option>
-                <option value="Partial">Partial</option>
-                <option value="Poor">Poor / Missed Doses</option>
-              </select>
-            </div>
-          </div>
-
           <div>
-            <label className="block text-sm font-medium">20. Mental / Cognitive Observation</label>
-            <textarea name="Cognitive_Obs" rows="3" placeholder="Notes on orientation to time, place, person, memory, or behavior..." value={formData.Cognitive_Obs} onChange={handleChange} className="w-full border p-2 rounded" />
+            <h1 className="text-xl font-bold tracking-wide">NITYASEVA</h1>
+            <p className="text-xs text-teal-200">Integrated Senior Care Platform (V5 Pilot)</p>
           </div>
-        </fieldset>
+        </div>
 
-        <button type="submit" className="w-full py-3 bg-teal-700 text-white font-bold rounded shadow hover:bg-teal-800">
-          Save 20-Point Assessment
-        </button>
-      </form>
+        {/* RIGHT CONTROLS: SENIOR SELECTOR + ROLE SELECTOR */}
+        <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2 bg-teal-900/80 px-3 py-1.5 rounded-lg border border-teal-600">
+            <span className="text-xs font-semibold text-teal-200 uppercase tracking-wider">Select Senior:</span>
+            <select
+              value={activeSeniorId}
+              onChange={(e) => setActiveSeniorId(e.target.value)}
+              className="bg-teal-800 text-white text-sm font-medium rounded px-2 py-1 focus:outline-none cursor-pointer"
+            >
+              {seniorList.length > 0 ? (
+                seniorList.map((s) => {
+                  const sId = s.Senior_ID || s.id;
+                  const sName = s.Full_Name || s.name;
+                  return (
+                    <option key={sId} value={sId}>
+                      {sId} - {sName}
+                    </option>
+                  );
+                })
+              ) : (
+                <>
+                  <option value="SEN-001">SEN-001 - Mrs. Kamala Sharma</option>
+                  <option value="SEN-002">SEN-002 - Mr. Ramesh Patel</option>
+                  <option value="SEN-003">SEN-003 - Mr. Rajesh Kumar</option>
+                </>
+              )}
+            </select>
+          </div>
+
+          <div className="text-right">
+            <p className="text-xs font-medium text-teal-200">Demo User</p>
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              className="bg-teal-900/80 text-white text-xs px-2 py-1 rounded border border-teal-600 focus:outline-none cursor-pointer"
+            >
+              <option value="ADMIN">View as Admin</option>
+              <option value="FAMILY">View as Family</option>
+              <option value="NURSE">View as Nurse</option>
+            </select>
+          </div>
+        </div>
+      </header>
+
+      {/* NAVIGATION TABS */}
+      <nav className="bg-white border-b px-6 flex space-x-6 text-sm font-medium text-slate-600">
+        {[
+          { id: 'dashboard', label: 'Dashboard' },
+          { id: 'work-orders', label: 'Work Orders' },
+          { id: 'assessment', label: '20-Point Assessment' },
+          { id: 'doctor-reviews', label: 'Doctor Reviews' }
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`py-3 border-b-2 transition-colors ${
+              activeTab === tab.id
+                ? 'border-teal-600 text-teal-700 font-bold'
+                : 'border-transparent hover:text-teal-600'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </nav>
+
+      {/* MAIN CONTENT AREA */}
+      <main className="max-w-6xl mx-auto p-6 space-y-6">
+        {loading && <div className="text-center py-2 text-teal-700 font-semibold animate-pulse">Updating Senior Profile...</div>}
+
+        {message && (
+          <div className="p-4 bg-teal-50 text-teal-800 rounded-lg border border-teal-200 text-sm flex justify-between items-center">
+            <span>{message}</span>
+            <button onClick={() => setMessage('')} className="text-teal-600 font-bold hover:text-teal-900">×</button>
+          </div>
+        )}
+
+        {/* TAB 1: DASHBOARD */}
+        {activeTab === 'dashboard' && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-sm font-semibold text-slate-500">Nurse Home Visits</h3>
+                  <span className="p-2 bg-teal-50 text-teal-600 rounded-lg text-xs font-bold">Visits</span>
+                </div>
+                <p className="text-3xl font-bold text-teal-700 mt-2">
+                  {entitlements.Nurse_Used} <span className="text-sm font-normal text-slate-400">/ {entitlements.Nurse_Allowed} Used</span>
+                </p>
+                <div className="w-full bg-slate-100 h-2 rounded-full mt-3 overflow-hidden">
+                  <div
+                    className="bg-teal-600 h-2 rounded-full"
+                    style={{ width: `${Math.min(100, (entitlements.Nurse_Used / (entitlements.Nurse_Allowed || 1)) * 100)}%` }}
+                  ></div>
+                </div>
+                <p className="text-xs text-slate-400 mt-3">Monthly Subscription Balance</p>
+              </div>
+
+              <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-sm font-semibold text-slate-500">Doctor Consultations</h3>
+                  <span className="p-2 bg-teal-50 text-teal-600 rounded-lg text-xs font-bold">Consults</span>
+                </div>
+                <p className="text-3xl font-bold text-teal-700 mt-2">
+                  {entitlements.Doctor_Used} <span className="text-sm font-normal text-slate-400">/ {entitlements.Doctor_Allowed} Used</span>
+                </p>
+                <div className="w-full bg-slate-100 h-2 rounded-full mt-3 overflow-hidden">
+                  <div
+                    className="bg-teal-600 h-2 rounded-full"
+                    style={{ width: `${Math.min(100, (entitlements.Doctor_Used / (entitlements.Doctor_Allowed || 1)) * 100)}%` }}
+                  ></div>
+                </div>
+                <p className="text-xs text-slate-400 mt-3">1 Consultation included per month</p>
+              </div>
+
+              <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex justify-between items-center">
+                <div>
+                  <span className="text-xs font-bold text-teal-600 uppercase tracking-wider">Active Senior Profile</span>
+                  <h2 className="text-2xl font-bold text-slate-800 mt-1">{activeSeniorId}</h2>
+                  <p className="text-sm text-slate-600 font-medium">{seniorData.Full_Name || 'Senior Profile'}</p>
+                  <span className="inline-block mt-2 px-2.5 py-0.5 bg-teal-100 text-teal-800 rounded-full text-xs font-semibold">
+                    Active Plan
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* RECENT WORK ORDERS TABLE */}
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+              <div className="p-5 border-b border-slate-100 flex justify-between items-center">
+                <h3 className="font-bold text-slate-800">Recent Work Orders ({activeSeniorId})</h3>
+                <button onClick={() => setActiveTab('work-orders')} className="text-xs font-semibold text-teal-600 hover:text-teal-800">View All →</button>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm text-slate-600">
+                  <thead className="bg-slate-50 text-xs text-slate-400 uppercase border-b">
+                    <tr>
+                      <th className="p-4">Work Order #</th>
+                      <th className="p-4">Service Type</th>
+                      <th className="p-4">Assigned To</th>
+                      <th className="p-4">Status</th>
+                      <th className="p-4">Start Code</th>
+                      <th className="p-4">End Code</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {activeWorkOrders.length > 0 ? (
+                      activeWorkOrders.map((wo) => (
+                        <tr key={wo.id} className="hover:bg-slate-50">
+                          <td className="p-4 font-semibold text-teal-700">{wo.id}</td>
+                          <td className="p-4">{wo.type}</td>
+                          <td className="p-4">{wo.assignedTo}</td>
+                          <td className="p-4">
+                            <span className={`px-2 py-1 text-xs font-bold rounded ${
+                              wo.status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
+                              wo.status === 'IN_PROGRESS' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600'
+                            }`}>
+                              {wo.status}
+                            </span>
+                          </td>
+                          <td className="p-4 font-mono">{wo.startCode}</td>
+                          <td className="p-4 font-mono">{wo.endCode}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={6} className="p-4 text-center text-slate-400">No recent work orders for {activeSeniorId}</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* VERIFICATION PORTAL */}
+            <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200 space-y-4">
+              <h3 className="font-bold text-lg text-slate-800">Code Verification Portal</h3>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <input
+                  type="text"
+                  placeholder="WO ID"
+                  value={woId}
+                  onChange={e => setWoId(e.target.value)}
+                  className="p-2.5 border rounded-lg text-sm flex-1 focus:ring-2 focus:ring-teal-500 outline-none"
+                />
+                <input
+                  type="text"
+                  placeholder="4-Digit Code"
+                  value={code}
+                  onChange={e => setCode(e.target.value)}
+                  maxLength={4}
+                  className="p-2.5 border rounded-lg text-sm font-mono flex-1 focus:ring-2 focus:ring-teal-500 outline-none"
+                />
+                <button
+                  onClick={() => handleVerify('START')}
+                  className="px-5 py-2.5 bg-teal-600 text-white font-medium text-sm rounded-lg hover:bg-teal-700 transition"
+                >
+                  Verify Start
+                </button>
+                <button
+                  onClick={() => handleVerify('END')}
+                  className="px-5 py-2.5 bg-slate-800 text-white font-medium text-sm rounded-lg hover:bg-slate-900 transition"
+                >
+                  Verify End
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 2: WORK ORDERS */}
+        {activeTab === 'work-orders' && (
+          <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200">
+            <h2 className="text-xl font-bold text-slate-800 mb-4">Work Orders Management</h2>
+            <p className="text-slate-600 text-sm mb-4">Active Profile: <span className="font-bold">{activeSeniorId}</span></p>
+            <div className="space-y-3">
+              {activeWorkOrders.map(wo => (
+                <div key={wo.id} className="p-4 border rounded-lg flex justify-between items-center bg-slate-50">
+                  <div>
+                    <h4 className="font-bold text-teal-700">{wo.id} — {wo.type}</h4>
+                    <p className="text-xs text-slate-500">Assigned: {wo.assignedTo}</p>
+                  </div>
+                  <span className="text-xs font-bold px-3 py-1 bg-teal-100 text-teal-800 rounded-full">{wo.status}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* TAB 3: 20-POINT ASSESSMENT (Embedded Component) */}
+        {activeTab === 'assessment' && (
+          <NurseWorkflow seniorId={activeSeniorId} loggedBy="nurse@nityaseva.org" />
+        )}
+
+        {/* TAB 4: DOCTOR REVIEWS */}
+        {activeTab === 'doctor-reviews' && (
+          <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200">
+            <h2 className="text-xl font-bold text-slate-800 mb-2">Doctor Reviews & Approvals</h2>
+            <p className="text-slate-500 text-sm">Reviewing records for active profile <span className="font-bold">{activeSeniorId}</span>.</p>
+          </div>
+        )}
+      </main>
     </div>
   );
 }
