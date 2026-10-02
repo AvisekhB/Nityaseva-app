@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Operations — Nityaseva</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <header>
+    <h1>Nityaseva Admin Operations</h1>
+    <div class="header-user">
+      <span id="user-display">Administrator</span>
+      <button id="btn-logout" class="secondary">Logout</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="card">
+      <h2>Create Senior Record</h2>
+      <form id="create-senior-form">
+        <div class="grid">
+          <div class="form-group">
+            <label>Full Name</label>
+            <input type="text" id="snr-name" required>
+          </div>
+          <div class="form-group">
+            <label>Date of Birth</label>
+            <input type="date" id="snr-dob">
+          </div>
+          <div class="form-group">
+            <label>Phone</label>
+            <input type="tel" id="snr-phone">
+          </div>
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" id="snr-email">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Residential Address</label>
+          <input type="text" id="snr-address">
+        </div>
+        <button type="submit">Add Senior</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>Generate Work Order (Nurse Visit / Doctor Consult)</h2>
+      <form id="create-wo-form">
+        <div class="grid">
+          <div class="form-group">
+            <label>Senior ID</label>
+            <input type="text" id="wo-senior-id" placeholder="e.g. SNR-..." required>
+          </div>
+          <div class="form-group">
+            <label>Service Type</label>
+            <select id="wo-type">
+              <option value="NurseVisit">NurseVisit</option>
+              <option value="DoctorConsult">DoctorConsult</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Assigned Staff ID</label>
+            <input type="text" id="wo-staff-id" placeholder="Optional Staff/Nurse ID">
+          </div>
+        </div>
+        <button type="submit">Generate Work Order & Send Codes</button>
+      </form>
+      <div id="wo-result" class="message hidden" style="margin-top: 14px;"></div>
+    </div>
+
+    <div class="card">
+      <h2>Operational Work Orders</h2>
+      <table id="admin-wo-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Senior</th>
+            <th>Type</th>
+            <th>Status</th>
+            <th>Override</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="5">Loading work orders...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <script type="module" src="js/admin.js"></script>
+</body>
+</html>

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Doctor Portal — Nityaseva</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <header>
+    <h1>Nityaseva Doctor Consultation Portal</h1>
+    <div class="header-user">
+      <span id="user-display">Loading...</span>
+      <button id="btn-logout" class="secondary">Logout</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="card">
+      <h2>Pending Clinical Escalations & Reviews</h2>
+      <table id="doctor-queue-table">
+        <thead>
+          <tr>
+            <th>Review ID</th>
+            <th>Senior</th>
+            <th>Priority</th>
+            <th>Reason</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="5">Loading queue...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div id="feedback-panel" class="card hidden">
+      <h2>Clinical Assessment & Recommendations: <span id="current-senior-title"></span></h2>
+      <form id="doctor-feedback-form">
+        <div class="form-group">
+          <label>Clinical Summary</label>
+          <textarea id="doc-summary" rows="3" required></textarea>
+        </div>
+        <div class="form-group">
+          <label>Medical Observations</label>
+          <textarea id="doc-obs" rows="2"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Doctor Advice to Family & Nurse</label>
+          <textarea id="doc-advice" rows="2" required></textarea>
+        </div>
+        <div class="form-group">
+          <label>Investigation / Lab Recommendations</label>
+          <input type="text" id="doc-inv" placeholder="e.g. Complete Blood Count, ECG">
+        </div>
+        <div class="form-group">
+          <label>Follow-up Date Required?</label>
+          <input type="date" id="doc-followup">
+        </div>
+        <button type="submit">Submit Feedback & Close Review</button>
+      </form>
+    </div>
+  </main>
+
+  <script type="module" src="js/doctor.js"></script>
+</body>
+</html>
