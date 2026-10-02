@@ -16,13 +16,14 @@
   </header>
 
   <main>
+    <!-- Senior Creation Form -->
     <div class="card">
       <h2>Create Senior Record</h2>
       <form id="create-senior-form">
         <div class="grid">
           <div class="form-group">
             <label>Full Name</label>
-            <input type="text" id="snr-name" required>
+            <input type="text" id="snr-name" placeholder="Full legal name" required>
           </div>
           <div class="form-group">
             <label>Date of Birth</label>
@@ -30,21 +31,22 @@
           </div>
           <div class="form-group">
             <label>Phone</label>
-            <input type="tel" id="snr-phone">
+            <input type="tel" id="snr-phone" placeholder="Mobile number">
           </div>
           <div class="form-group">
             <label>Email</label>
-            <input type="email" id="snr-email" required>
+            <input type="email" id="snr-email" placeholder="senior@example.com" required>
           </div>
         </div>
         <div class="form-group">
           <label>Residential Address</label>
-          <input type="text" id="snr-address">
+          <input type="text" id="snr-address" placeholder="Door / Street / Locality / City">
         </div>
         <button type="submit">Add Senior</button>
       </form>
     </div>
 
+    <!-- Work Order Generation Form (Includes Scheduled Date & Time) -->
     <div class="card">
       <h2>Generate Work Order (Nurse Visit / Doctor Consult)</h2>
       <form id="create-wo-form">
@@ -74,6 +76,7 @@
       <div id="wo-result" class="message hidden" style="margin-top: 14px;"></div>
     </div>
 
+    <!-- Operational Work Orders Table (Includes Scheduled Time Column) -->
     <div class="card">
       <h2>Operational Work Orders</h2>
       <table id="admin-wo-table">
