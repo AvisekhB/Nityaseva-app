@@ -5,6 +5,32 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin Operations — Nityaseva</title>
   <link rel="stylesheet" href="css/style.css">
+  <style>
+    .admin-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 16px auto;
+      max-width: 1100px;
+      padding: 0 16px;
+    }
+    .nav-tab {
+      background: #e2e8f0;
+      color: #2d3748;
+      padding: 8px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 13px;
+      border: none;
+    }
+    .nav-tab.active {
+      background: #1e5238;
+      color: white;
+    }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+  </style>
 </head>
 <body>
   <header>
@@ -15,85 +41,268 @@
     </div>
   </header>
 
+  <!-- Navigation Bar for Admin Views -->
+  <div class="admin-nav">
+    <button class="nav-tab active" data-tab="tab-operations">📋 Work Orders & Dispatch</button>
+    <button class="nav-tab" data-tab="tab-seniors">👴 Seniors & Families</button>
+    <button class="nav-tab" data-tab="tab-directory">👩‍⚕️ Staff & Doctors</button>
+    <button class="nav-tab" data-tab="tab-subscriptions">💳 Subscriptions & Entitlements</button>
+    <button class="nav-tab" data-tab="tab-appointments">📅 Appointments</button>
+    <button class="nav-tab" data-tab="tab-clinical">🩺 Doctor Reviews</button>
+    <button class="nav-tab" data-tab="tab-audit">🔒 Audit Trail</button>
+  </div>
+
   <main>
-    <!-- Senior Creation Form -->
-    <div class="card">
-      <h2>Create Senior Record</h2>
-      <form id="create-senior-form">
-        <div class="grid">
-          <div class="form-group">
-            <label>Full Name</label>
-            <input type="text" id="snr-name" placeholder="Full legal name" required>
+    <!-- TAB 1: OPERATIONS (Work Orders & Senior Creation) -->
+    <div id="tab-operations" class="tab-content active">
+      <!-- Senior Creation Form -->
+      <div class="card">
+        <h2>Create Senior Record</h2>
+        <form id="create-senior-form">
+          <div class="grid">
+            <div class="form-group">
+              <label>Full Name</label>
+              <input type="text" id="snr-name" placeholder="Full legal name" required>
+            </div>
+            <div class="form-group">
+              <label>Date of Birth</label>
+              <input type="date" id="snr-dob">
+            </div>
+            <div class="form-group">
+              <label>Phone</label>
+              <input type="tel" id="snr-phone" placeholder="Mobile number">
+            </div>
+            <div class="form-group">
+              <label>Email</label>
+              <input type="email" id="snr-email" placeholder="senior@example.com" required>
+            </div>
           </div>
           <div class="form-group">
-            <label>Date of Birth</label>
-            <input type="date" id="snr-dob">
+            <label>Residential Address</label>
+            <input type="text" id="snr-address" placeholder="Door / Street / Locality / City">
           </div>
-          <div class="form-group">
-            <label>Phone</label>
-            <input type="tel" id="snr-phone" placeholder="Mobile number">
+          <button type="submit">Add Senior</button>
+        </form>
+      </div>
+
+      <!-- Work Order Generation Form (Includes Scheduled Date & Time) -->
+      <div class="card">
+        <h2>Generate Work Order (Nurse Visit / Doctor Consult)</h2>
+        <form id="create-wo-form">
+          <div class="grid">
+            <div class="form-group">
+              <label>Senior ID</label>
+              <input type="text" id="wo-senior-id" placeholder="e.g. SNR-..." required>
+            </div>
+            <div class="form-group">
+              <label>Service Type</label>
+              <select id="wo-type">
+                <option value="NurseVisit">NurseVisit</option>
+                <option value="DoctorConsult">DoctorConsult</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Scheduled Date & Time</label>
+              <input type="datetime-local" id="wo-scheduled-at" required>
+            </div>
+            <div class="form-group">
+              <label>Assigned Staff ID</label>
+              <input type="text" id="wo-staff-id" placeholder="Optional Staff/Nurse ID">
+            </div>
           </div>
-          <div class="form-group">
-            <label>Email</label>
-            <input type="email" id="snr-email" placeholder="senior@example.com" required>
-          </div>
-        </div>
-        <div class="form-group">
-          <label>Residential Address</label>
-          <input type="text" id="snr-address" placeholder="Door / Street / Locality / City">
-        </div>
-        <button type="submit">Add Senior</button>
-      </form>
+          <button type="submit">Generate Work Order & Send Codes</button>
+        </form>
+        <div id="wo-result" class="message hidden" style="margin-top: 14px;"></div>
+      </div>
+
+      <!-- Operational Work Orders Table (Includes Scheduled Time Column) -->
+      <div class="card">
+        <h2>Operational Work Orders</h2>
+        <table id="admin-wo-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Senior</th>
+              <th>Type</th>
+              <th>Scheduled Time</th>
+              <th>Status</th>
+              <th>Override</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td colspan="6">Loading work orders...</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
-    <!-- Work Order Generation Form (Includes Scheduled Date & Time) -->
-    <div class="card">
-      <h2>Generate Work Order (Nurse Visit / Doctor Consult1)</h2>
-      <form id="create-wo-form">
-        <div class="grid">
-          <div class="form-group">
-            <label>Senior ID</label>
-            <input type="text" id="wo-senior-id" placeholder="e.g. SNR-..." required>
-          </div>
-          <div class="form-group">
-            <label>Service Type</label>
-            <select id="wo-type">
-              <option value="NurseVisit">NurseVisit</option>
-              <option value="DoctorConsult">DoctorConsult</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Scheduled Date & Time</label>
-            <input type="datetime-local" id="wo-scheduled-at" required>
-          </div>
-          <div class="form-group">
-            <label>Assigned Staff ID</label>
-            <input type="text" id="wo-staff-id" placeholder="Optional Staff/Nurse ID">
-          </div>
-        </div>
-        <button type="submit">Generate Work Order & Send Codes</button>
-      </form>
-      <div id="wo-result" class="message hidden" style="margin-top: 14px;"></div>
+    <!-- TAB 2: SENIORS & FAMILIES DIRECTORY -->
+    <div id="tab-seniors" class="tab-content">
+      <div class="card">
+        <h2>All Registered Seniors</h2>
+        <table id="admin-seniors-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Full Name</th>
+              <th>Phone</th>
+              <th>Email</th>
+              <th>Address</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody><tr><td colspan="6">Loading...</td></tr></tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h2>Family Members & Senior Links</h2>
+        <table id="admin-families-table">
+          <thead>
+            <tr>
+              <th>Family ID</th>
+              <th>Name</th>
+              <th>Relationship</th>
+              <th>Linked Senior ID</th>
+              <th>Email</th>
+              <th>Phone</th>
+            </tr>
+          </thead>
+          <tbody><tr><td colspan="6">Loading...</td></tr></tbody>
+        </table>
+      </div>
     </div>
 
-    <!-- Operational Work Orders Table (Includes Scheduled Time Column) -->
-    <div class="card">
-      <h2>Operational Work Orders</h2>
-      <table id="admin-wo-table">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Senior</th>
-            <th>Type</th>
-            <th>Scheduled Time</th>
-            <th>Status</th>
-            <th>Override</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr><td colspan="6">Loading work orders...</td></tr>
-        </tbody>
-      </table>
+    <!-- TAB 3: STAFF & DOCTORS DIRECTORY -->
+    <div id="tab-directory" class="tab-content">
+      <div class="card">
+        <h2>Healthcare Staff / Nurses Directory</h2>
+        <table id="admin-staff-table">
+          <thead>
+            <tr>
+              <th>Staff ID</th>
+              <th>Name</th>
+              <th>Role</th>
+              <th>Email</th>
+              <th>Phone</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody><tr><td colspan="6">Loading...</td></tr></tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h2>Doctors Directory</h2>
+        <table id="admin-doctors-table">
+          <thead>
+            <tr>
+              <th>Doctor ID</th>
+              <th>Name</th>
+              <th>Specialty</th>
+              <th>Email</th>
+              <th>Phone</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody><tr><td colspan="6">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB 4: SUBSCRIPTIONS & ENTITLEMENTS -->
+    <div id="tab-subscriptions" class="tab-content">
+      <div class="card">
+        <h2>Subscriptions</h2>
+        <table id="admin-subs-table">
+          <thead>
+            <tr>
+              <th>Sub ID</th>
+              <th>Senior ID</th>
+              <th>Plan</th>
+              <th>Nurse Visits/Mo</th>
+              <th>Doctor Consults/Mo</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody><tr><td colspan="6">Loading...</td></tr></tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h2>Monthly Entitlements (Used / Allowed)</h2>
+        <table id="admin-entitlements-table">
+          <thead>
+            <tr>
+              <th>Senior ID</th>
+              <th>Month</th>
+              <th>Nurse Visits</th>
+              <th>Doctor Consults</th>
+            </tr>
+          </thead>
+          <tbody><tr><td colspan="4">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB 5: APPOINTMENTS -->
+    <div id="tab-appointments" class="tab-content">
+      <div class="card">
+        <h2>Requested & Scheduled Appointments</h2>
+        <table id="admin-apts-table">
+          <thead>
+            <tr>
+              <th>Appointment ID</th>
+              <th>Senior ID</th>
+              <th>Type</th>
+              <th>Scheduled Time</th>
+              <th>Assigned Staff</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody><tr><td colspan="6">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB 6: CLINICAL REVIEWS -->
+    <div id="tab-clinical" class="tab-content">
+      <div class="card">
+        <h2>Doctor Clinical Escalations & Reviews</h2>
+        <table id="admin-reviews-table">
+          <thead>
+            <tr>
+              <th>Review ID</th>
+              <th>Senior ID</th>
+              <th>Priority</th>
+              <th>Reason</th>
+              <th>Assigned Doctor</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody><tr><td colspan="6">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB 7: AUDIT TRAIL -->
+    <div id="tab-audit" class="tab-content">
+      <div class="card">
+        <h2>System Compliance Audit Trail (Last 100 Events)</h2>
+        <table id="admin-audit-table">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Actor</th>
+              <th>Role</th>
+              <th>Event</th>
+              <th>Target ID</th>
+              <th>Details</th>
+            </tr>
+          </thead>
+          <tbody><tr><td colspan="6">Loading...</td></tr></tbody>
+        </table>
+      </div>
     </div>
   </main>
 
