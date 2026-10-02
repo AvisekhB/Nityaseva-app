@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { DataService } from './services/dataService';
+import NurseWorkflow from './components/NurseWorkflow';
 
 export default function App() {
   const [role, setRole] = useState('ADMIN');
@@ -15,7 +16,7 @@ export default function App() {
   const [code, setCode] = useState('');
   const [message, setMessage] = useState('');
 
-  // Sample static work orders table data (filters or updates according to active Senior)
+  // Sample static work orders table data
   const [workOrders, setWorkOrders] = useState([
     { id: 'WO-849201', seniorId: 'SEN-001', type: 'Nurse Visit #1', assignedTo: 'Nurse Anjali', status: 'IN_PROGRESS', startCode: '4821', endCode: '9104' },
     { id: 'WO-849202', seniorId: 'SEN-001', type: 'Doctor Consult #1', assignedTo: 'Dr. R. Mehta', status: 'SCHEDULED', startCode: '3190', endCode: '7742' },
@@ -54,7 +55,7 @@ export default function App() {
         if (entitlementData) setEntitlements(entitlementData);
       } catch (err) {
         console.error("Error loading senior profile:", err);
-      } finally {
+      } font-medium {
         setLoading(false);
       }
     }
@@ -70,7 +71,7 @@ export default function App() {
         ? await DataService.verifyStartCode(woId, code, 'caregiver@nityaseva.org')
         : await DataService.verifyEndCode(woId, code, 'caregiver@nityaseva.org');
 
-      setMessage(`Success: ${type} code verified. Status: ${res.status || 'Updated'}`);
+      setMessage(`Success: ${type} code verified. Status: ${res?.status || 'Updated'}`);
       setCode('');
     } catch (err) {
       setMessage(`Error: ${err.message || 'Verification failed'}`);
@@ -98,7 +99,6 @@ export default function App() {
 
         {/* RIGHT CONTROLS: SENIOR SELECTOR + ROLE SELECTOR */}
         <div className="flex items-center space-x-4">
-          {/* Dynamic Senior Selector Dropdown */}
           <div className="flex items-center space-x-2 bg-teal-900/80 px-3 py-1.5 rounded-lg border border-teal-600">
             <span className="text-xs font-semibold text-teal-200 uppercase tracking-wider">Select Senior:</span>
             <select
@@ -126,7 +126,6 @@ export default function App() {
             </select>
           </div>
 
-          {/* Role Selector Dropdown */}
           <div className="text-right">
             <p className="text-xs font-medium text-teal-200">Demo User</p>
             <select
@@ -168,7 +167,6 @@ export default function App() {
       <main className="max-w-6xl mx-auto p-6 space-y-6">
         {loading && <div className="text-center py-2 text-teal-700 font-semibold animate-pulse">Updating Senior Profile...</div>}
 
-        {/* SYSTEM NOTIFICATION BANNER */}
         {message && (
           <div className="p-4 bg-teal-50 text-teal-800 rounded-lg border border-teal-200 text-sm flex justify-between items-center">
             <span>{message}</span>
@@ -179,7 +177,6 @@ export default function App() {
         {/* TAB 1: DASHBOARD */}
         {activeTab === 'dashboard' && (
           <div className="space-y-6">
-            {/* STAT CARDS */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
                 <div className="flex justify-between items-center">
@@ -195,7 +192,7 @@ export default function App() {
                     style={{ width: `${Math.min(100, (entitlements.Nurse_Used / (entitlements.Nurse_Allowed || 1)) * 100)}%` }}
                   ></div>
                 </div>
-                <p className="text-xs text-slate-400 mt-3">October 2026 Monthly Subscription Balance</p>
+                <p className="text-xs text-slate-400 mt-3">Monthly Subscription Balance</p>
               </div>
 
               <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
@@ -330,20 +327,9 @@ export default function App() {
           </div>
         )}
 
-        {/* TAB 3: ASSESSMENT */}
+        {/* TAB 3: 20-POINT ASSESSMENT (Embedded Component) */}
         {activeTab === 'assessment' && (
-          <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200">
-            <h2 className="text-xl font-bold text-slate-800 mb-2">20-Point Assessment Form</h2>
-            <p className="text-slate-500 text-sm mb-6">Patient: {activeSeniorId} ({seniorData.Full_Name})</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <input type="text" placeholder="Pulse / Heart Rate" className="p-2 border rounded text-sm" />
-              <input type="text" placeholder="Blood Pressure (e.g. 120/80)" className="p-2 border rounded text-sm" />
-              <input type="text" placeholder="Random Glucose" className="p-2 border rounded text-sm" />
-              <input type="text" placeholder="SPO2 %" className="p-2 border rounded text-sm" />
-              <textarea placeholder="Clinical Notes / Observations" className="p-2 border rounded text-sm md:col-span-2" rows={3}></textarea>
-            </div>
-            <button className="mt-4 px-6 py-2 bg-teal-600 text-white rounded font-medium text-sm hover:bg-teal-700">Save Assessment</button>
-          </div>
+          <NurseWorkflow seniorId={activeSeniorId} loggedBy="nurse@nityaseva.org" />
         )}
 
         {/* TAB 4: DOCTOR REVIEWS */}
