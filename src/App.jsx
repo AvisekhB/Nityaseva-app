@@ -55,7 +55,7 @@ export default function App() {
         if (entitlementData) setEntitlements(entitlementData);
       } catch (err) {
         console.error("Error loading senior profile:", err);
-      } font-medium {
+      } finally {
         setLoading(false);
       }
     }
