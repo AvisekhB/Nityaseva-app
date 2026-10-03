@@ -5,14 +5,13 @@ let currentProfile = null;
 let allSeniorsCache = [];
 
 async function init() {
+  setupTabs(); // Bind tabs FIRST so they always work even if dashboard load fails
+
   currentProfile = await requireAuth('admin');
   if (!currentProfile) return;
 
   document.getElementById('user-display').textContent = currentProfile.full_name || currentProfile.email || 'Admin';
   document.getElementById('btn-logout').addEventListener('click', signOut);
-
-  // Setup tab switching
-  setupTabs();
 
   // Set default scheduled time to current time + 1 hour in local time
   const dateInput = document.getElementById('wo-scheduled-at');
@@ -31,10 +30,13 @@ async function init() {
 }
 
 function setupTabs() {
-  document.querySelectorAll('.nav-tab').forEach(btn => {
+  const tabs = document.querySelectorAll('.nav-tab');
+  const contents = document.querySelectorAll('.tab-content');
+
+  tabs.forEach(btn => {
     btn.addEventListener('click', (e) => {
-      document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      tabs.forEach(b => b.classList.remove('active'));
+      contents.forEach(c => c.classList.remove('active'));
 
       const tabId = e.currentTarget.getAttribute('data-tab');
       e.currentTarget.classList.add('active');
@@ -51,32 +53,20 @@ async function loadAdminDashboard() {
     allSeniorsCache = data.seniors || [];
     populateSeniorDropdowns(allSeniorsCache);
 
-    // 1. Render Work Orders
     renderWorkOrders(data.workOrders || []);
-
-    // 2. Render Seniors & Families
     renderSeniors(data.seniors || []);
     renderFamilies(data.families || [], data.familyLinks || []);
-
-    // 3. Render Staff & Doctors
     renderStaff(data.staff || []);
     renderDoctors(data.doctors || []);
-
-    // 4. Render Subscriptions & Entitlements
     renderSubscriptions(data.subscriptions || []);
     renderEntitlements(data.entitlements || []);
-
-    // 5. Render Appointments
     renderAppointments(data.appointments || []);
-
-    // 6. Render Doctor Reviews
     renderReviews(data.reviews || []);
-
-    // 7. Render Audit Logs
     renderAudit(data.logs || []);
 
   } catch (err) {
     console.error('Error loading admin dashboard:', err);
+    alert('Dashboard load error: ' + err.message);
   }
 }
 
@@ -121,10 +111,11 @@ function renderWorkOrders(orders) {
 
   [...orders].reverse().forEach(wo => {
     const tr = document.createElement('tr');
-    const badgeColor = wo.status === 'COMPLETE' || wo.status === 'CLOSE' ? 'badge-green' : 
-                      (wo.status === 'IN_PROGRESS' ? 'badge-yellow' : 
-                      ${wo.status !== 'CANCELLED' && wo.status !== 'COMPLETE' && wo.status !== 'CLOSE'
 
+    const isClosedState = (wo.status === 'COMPLETE' || wo.status === 'CLOSE');
+    const badgeColor = isClosedState
+      ? 'badge-green'
+      : (wo.status === 'IN_PROGRESS' ? 'badge-yellow' : 'badge-blue');
 
     let displayTime = '-';
     if (wo.created_at) {
@@ -138,6 +129,8 @@ function renderWorkOrders(orders) {
       }
     }
 
+    const canCancel = wo.status !== 'CANCELLED' && wo.status !== 'COMPLETE' && wo.status !== 'CLOSE';
+
     tr.innerHTML = `
       <td><strong>${wo.work_order_id}</strong></td>
       <td>${getSeniorName(wo.senior_id)}</td>
@@ -145,7 +138,7 @@ function renderWorkOrders(orders) {
       <td>${displayTime}</td>
       <td><span class="badge ${badgeColor}">${wo.status}</span></td>
       <td>
-        ${wo.status !== 'CANCELLED' && wo.status !== 'COMPLETED'
+        ${canCancel
           ? `<button class="override-btn danger" data-id="${wo.work_order_id}">Cancel</button>`
           : `<span style="color:#a0aec0;font-size:12px;">Locked</span>`
         }
@@ -353,7 +346,16 @@ function renderAudit(logs) {
   });
 }
 
-document.getElementById('create-senior-form').addEventListener('submit', async (e) => {
+function safeBind(id, eventName, handler) {
+  const el = document.getElementById(id);
+  if (el) {
+    el.addEventListener(eventName, handler);
+  } else {
+    console.warn('Element not found, skipping binding: #' + id);
+  }
+}
+
+safeBind('create-senior-form', 'submit', async (e) => {
   e.preventDefault();
   try {
     const res = await callApi('adminCreateSenior', {
@@ -365,7 +367,8 @@ document.getElementById('create-senior-form').addEventListener('submit', async (
     });
 
     alert('Senior created successfully! ID: ' + res.seniorId);
-    document.getElementById('wo-senior-id').value = res.seniorId;
+    const woSeniorInput = document.getElementById('wo-senior-id');
+    if (woSeniorInput) woSeniorInput.value = res.seniorId;
     document.getElementById('create-senior-form').reset();
     await loadAdminDashboard();
   } catch (err) {
@@ -373,7 +376,7 @@ document.getElementById('create-senior-form').addEventListener('submit', async (
   }
 });
 
-document.getElementById('create-wo-form').addEventListener('submit', async (e) => {
+safeBind('create-wo-form', 'submit', async (e) => {
   e.preventDefault();
   const resultDiv = document.getElementById('wo-result');
   resultDiv.className = 'message hidden';
@@ -413,11 +416,9 @@ document.getElementById('create-wo-form').addEventListener('submit', async (e) =
   }
 });
 
-// NEW: Create Subscription Form Handler
-document.getElementById('create-sub-form').addEventListener('submit', async (e) => {
+safeBind('create-sub-form', 'submit', async (e) => {
   e.preventDefault();
   const resultDiv = document.getElementById('sub-result');
-  resultDiv.className = 'message hidden';
 
   try {
     const res = await callApi('adminCreateSubscription', {
@@ -444,8 +445,7 @@ document.getElementById('create-sub-form').addEventListener('submit', async (e) 
   }
 });
 
-// NEW: Create Appointment Form Handler
-document.getElementById('create-apt-form').addEventListener('submit', async (e) => {
+safeBind('create-apt-form', 'submit', async (e) => {
   e.preventDefault();
 
   try {
@@ -470,4 +470,7 @@ document.getElementById('create-apt-form').addEventListener('submit', async (e) 
   }
 });
 
-init();
+init().catch(err => {
+  console.error('INIT FAILED:', err);
+  alert('Dashboard failed to initialize: ' + err.message);
+});
