@@ -212,8 +212,37 @@
 
     <!-- TAB 4: SUBSCRIPTIONS & ENTITLEMENTS -->
     <div id="tab-subscriptions" class="tab-content">
+      <!-- Create Subscription Form -->
       <div class="card">
-        <h2>Subscriptions</h2>
+        <h2>Create Subscription Plan</h2>
+        <form id="create-sub-form">
+          <div class="grid">
+            <div class="form-group">
+              <label>Select Senior</label>
+              <select id="sub-senior-id" required>
+                <option value="">-- Choose Senior --</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Plan Name</label>
+              <input type="text" id="sub-plan-name" value="Standard Care" required>
+            </div>
+            <div class="form-group">
+              <label>Nurse Visits / Month</label>
+              <input type="number" id="sub-nurse-visits" value="2" required>
+            </div>
+            <div class="form-group">
+              <label>Doctor Consults / Month</label>
+              <input type="number" id="sub-doctor-consults" value="1" required>
+            </div>
+          </div>
+          <button type="submit">Create Subscription</button>
+        </form>
+        <div id="sub-result" class="message hidden" style="margin-top: 14px;"></div>
+      </div>
+
+      <div class="card">
+        <h2>Active Subscriptions</h2>
         <table id="admin-subs-table">
           <thead>
             <tr>
@@ -247,6 +276,33 @@
 
     <!-- TAB 5: APPOINTMENTS -->
     <div id="tab-appointments" class="tab-content">
+      <!-- Create Appointment Form -->
+      <div class="card">
+        <h2>Request / Create Appointment</h2>
+        <form id="create-apt-form">
+          <div class="grid">
+            <div class="form-group">
+              <label>Select Senior</label>
+              <select id="apt-senior-id" required>
+                <option value="">-- Choose Senior --</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Type</label>
+              <select id="apt-type">
+                <option value="NurseVisit">Nurse Home Visit</option>
+                <option value="DoctorConsult">Doctor Teleconsult</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Preferred Date & Time</label>
+              <input type="datetime-local" id="apt-scheduled-at" required>
+            </div>
+          </div>
+          <button type="submit">Create Appointment Request</button>
+        </form>
+      </div>
+
       <div class="card">
         <h2>Requested & Scheduled Appointments</h2>
         <table id="admin-apts-table">
@@ -256,11 +312,10 @@
               <th>Senior ID</th>
               <th>Type</th>
               <th>Scheduled Time</th>
-              <th>Assigned Staff</th>
               <th>Status</th>
             </tr>
           </thead>
-          <tbody><tr><td colspan="6">Loading...</td></tr></tbody>
+          <tbody><tr><td colspan="5">Loading...</td></tr></tbody>
         </table>
       </div>
     </div>
