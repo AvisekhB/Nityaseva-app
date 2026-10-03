@@ -2,6 +2,7 @@ import { requireAuth, signOut } from './auth.js';
 import { callApi } from './dataService.js';
 
 let currentProfile = null;
+let allSeniorsCache = [];
 
 async function init() {
   currentProfile = await requireAuth('admin');
@@ -18,6 +19,12 @@ async function init() {
   if (dateInput) {
     const d = new Date(Date.now() + 3600000);
     dateInput.value = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  }
+
+  const aptDateInput = document.getElementById('apt-scheduled-at');
+  if (aptDateInput) {
+    const d2 = new Date(Date.now() + 3600000);
+    aptDateInput.value = new Date(d2.getTime() - d2.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
   }
 
   await loadAdminDashboard();
@@ -40,6 +47,9 @@ function setupTabs() {
 async function loadAdminDashboard() {
   try {
     const data = await callApi('getAdminDashboard');
+
+    allSeniorsCache = data.seniors || [];
+    populateSeniorDropdowns(allSeniorsCache);
 
     // 1. Render Work Orders
     renderWorkOrders(data.workOrders || []);
@@ -68,6 +78,36 @@ async function loadAdminDashboard() {
   } catch (err) {
     console.error('Error loading admin dashboard:', err);
   }
+}
+
+function populateSeniorDropdowns(seniors) {
+  const subDropdown = document.getElementById('sub-senior-id');
+  const aptDropdown = document.getElementById('apt-senior-id');
+
+  const buildOptions = () => {
+    let html = '<option value="">-- Choose Senior --</option>';
+    seniors.forEach(s => {
+      html += `<option value="${s.senior_id}">${s.full_name} (${s.senior_id})</option>`;
+    });
+    return html;
+  };
+
+  if (subDropdown) {
+    const currentVal = subDropdown.value;
+    subDropdown.innerHTML = buildOptions();
+    if (currentVal) subDropdown.value = currentVal;
+  }
+
+  if (aptDropdown) {
+    const currentVal = aptDropdown.value;
+    aptDropdown.innerHTML = buildOptions();
+    if (currentVal) aptDropdown.value = currentVal;
+  }
+}
+
+function getSeniorName(id) {
+  const s = allSeniorsCache.find(x => x.senior_id === id);
+  return s ? s.full_name : id;
 }
 
 function renderWorkOrders(orders) {
@@ -99,7 +139,7 @@ function renderWorkOrders(orders) {
 
     tr.innerHTML = `
       <td><strong>${wo.work_order_id}</strong></td>
-      <td>${wo.senior_id}</td>
+      <td>${getSeniorName(wo.senior_id)}</td>
       <td>${wo.type}</td>
       <td>${displayTime}</td>
       <td><span class="badge ${badgeColor}">${wo.status}</span></td>
@@ -219,7 +259,7 @@ function renderSubscriptions(subs) {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td><strong>${s.subscription_id}</strong></td>
-      <td>${s.senior_id}</td>
+      <td>${getSeniorName(s.senior_id)}</td>
       <td>${s.plan_name}</td>
       <td>${s.nurse_visits_per_month}</td>
       <td>${s.doctor_consults_per_month}</td>
@@ -237,7 +277,7 @@ function renderEntitlements(ents) {
   ents.forEach(e => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td><strong>${e.senior_id}</strong></td>
+      <td><strong>${getSeniorName(e.senior_id)}</strong></td>
       <td>${e.month}</td>
       <td>${e.nurse_used} / ${e.nurse_allowed}</td>
       <td>${e.doctor_used} / ${e.doctor_allowed}</td>
@@ -249,16 +289,22 @@ function renderEntitlements(ents) {
 function renderAppointments(apts) {
   const tbody = document.querySelector('#admin-apts-table tbody');
   tbody.innerHTML = '';
-  if (apts.length === 0) return tbody.innerHTML = '<tr><td colspan="6">No appointments requested.</td></tr>';
+  if (apts.length === 0) return tbody.innerHTML = '<tr><td colspan="5">No appointments requested.</td></tr>';
 
-  apts.forEach(a => {
+  [...apts].reverse().forEach(a => {
     const tr = document.createElement('tr');
+    let displayTime = a.scheduled_at || '-';
+    try {
+      if (a.scheduled_at) {
+        displayTime = new Date(a.scheduled_at).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' });
+      }
+    } catch (e) {}
+
     tr.innerHTML = `
       <td><strong>${a.appointment_id}</strong></td>
-      <td>${a.senior_id}</td>
+      <td>${getSeniorName(a.senior_id)}</td>
       <td>${a.type}</td>
-      <td>${a.scheduled_at || '-'}</td>
-      <td>${a.assigned_staff_id || 'Unassigned'}</td>
+      <td>${displayTime}</td>
       <td><span class="badge badge-yellow">${a.status}</span></td>
     `;
     tbody.appendChild(tr);
@@ -275,7 +321,7 @@ function renderReviews(revs) {
     const color = r.priority === 'EMERGENCY' ? 'badge-red' : (r.priority === 'URGENT' ? 'badge-yellow' : 'badge-blue');
     tr.innerHTML = `
       <td><strong>${r.review_id}</strong></td>
-      <td>${r.senior_id}</td>
+      <td>${getSeniorName(r.senior_id)}</td>
       <td><span class="badge ${color}">${r.priority}</span></td>
       <td>${r.reason}</td>
       <td>${r.assigned_doctor_id || 'Open'}</td>
@@ -363,6 +409,63 @@ document.getElementById('create-wo-form').addEventListener('submit', async (e) =
     resultDiv.innerHTML = 'Error: ' + err.message;
     resultDiv.className = 'message error';
     resultDiv.classList.remove('hidden');
+  }
+});
+
+// NEW: Create Subscription Form Handler
+document.getElementById('create-sub-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const resultDiv = document.getElementById('sub-result');
+  resultDiv.className = 'message hidden';
+
+  try {
+    const res = await callApi('adminCreateSubscription', {
+      seniorId: document.getElementById('sub-senior-id').value,
+      planName: document.getElementById('sub-plan-name').value.trim(),
+      nurseVisits: Number(document.getElementById('sub-nurse-visits').value),
+      doctorConsults: Number(document.getElementById('sub-doctor-consults').value)
+    });
+
+    resultDiv.innerHTML = `<strong>Subscription created successfully!</strong> ID: ${res.subscriptionId}`;
+    resultDiv.className = 'message success';
+    resultDiv.classList.remove('hidden');
+
+    document.getElementById('create-sub-form').reset();
+    document.getElementById('sub-plan-name').value = 'Standard Care';
+    document.getElementById('sub-nurse-visits').value = 2;
+    document.getElementById('sub-doctor-consults').value = 1;
+
+    await loadAdminDashboard();
+  } catch (err) {
+    resultDiv.innerHTML = 'Error: ' + err.message;
+    resultDiv.className = 'message error';
+    resultDiv.classList.remove('hidden');
+  }
+});
+
+// NEW: Create Appointment Form Handler
+document.getElementById('create-apt-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  try {
+    const scheduledVal = document.getElementById('apt-scheduled-at').value;
+    const scheduledIso = scheduledVal ? new Date(scheduledVal).toISOString() : '';
+
+    await callApi('adminCreateAppointment', {
+      seniorId: document.getElementById('apt-senior-id').value,
+      type: document.getElementById('apt-type').value,
+      scheduledAt: scheduledIso
+    });
+
+    alert('Appointment created successfully!');
+    document.getElementById('create-apt-form').reset();
+
+    const d2 = new Date(Date.now() + 3600000);
+    document.getElementById('apt-scheduled-at').value = new Date(d2.getTime() - d2.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+
+    await loadAdminDashboard();
+  } catch (err) {
+    alert('Failed to create appointment: ' + err.message);
   }
 });
 
