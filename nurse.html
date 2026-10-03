@@ -3,99 +3,166 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Nurse Portal — Nityaseva</title>
+  <title>Nurse Field Care — Nityaseva</title>
   <link rel="stylesheet" href="css/style.css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    .step-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+      background: #fafafa;
+    }
+    .step-card.active {
+      border-left: 5px solid #1e5238;
+      background: #ffffff;
+    }
+    .step-card.done {
+      border-left: 5px solid #38a169;
+      opacity: 0.85;
+    }
+    .step-header {
+      font-weight: 700;
+      color: #1e5238;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .consult-box {
+      background: #ebf8ff;
+      border: 1px solid #bee3f8;
+      padding: 12px;
+      border-radius: 6px;
+      margin: 12px 0;
+    }
+  </style>
 </head>
 <body>
   <header>
-    <h1>Nityaseva Nurse Visit Portal</h1>
+    <h1>Nityaseva Nurse Field Operations</h1>
     <div class="header-user">
-      <span id="user-display">Loading...</span>
+      <span id="user-display">Nurse</span>
       <button id="btn-logout" class="secondary">Logout</button>
     </div>
   </header>
 
   <main>
+    <!-- Assigned Work Orders -->
     <div class="card">
-      <h2>Assigned Work Orders</h2>
+      <h2>Assigned Work Orders (Today's Care Route)</h2>
       <table id="nurse-wo-table">
         <thead>
           <tr>
-            <th>ID</th>
-            <th>Senior</th>
-            <th>Type</th>
-            <th>Status</th>
+            <th>WO ID</th>
+            <th>Senior Patient</th>
+            <th>Scheduled Time</th>
+            <th>Lifecycle Status</th>
             <th>Action</th>
           </tr>
         </thead>
         <tbody>
-          <tr><td colspan="5">Loading visits...</td></tr>
+          <tr><td colspan="5">Loading assigned route...</td></tr>
         </tbody>
       </table>
     </div>
 
-    <!-- Active Visit Workspace -->
+    <!-- Active Field Execution Workspace (PRD §14) -->
     <div id="visit-workspace" class="card hidden">
-      <h2>Active Visit Execution: <span id="active-wo-id"></span></h2>
-      
-      <!-- Start Code Step -->
-      <div id="start-code-step">
-        <p>Ask the family for the <strong>Start Code</strong> to initiate service verification:</p>
-        <div class="form-group">
-          <input type="text" id="start-code-input" placeholder="Enter Start Code (e.g. 8 chars)">
+      <h2>Field Visit Execution: <span id="active-wo-id"></span></h2>
+      <p style="font-size: 13px; color: #718096;">
+        Senior: <strong id="active-senior-name"></strong> | Status: <span id="active-lifecycle-badge" class="badge"></span>
+      </p>
+
+      <!-- STEP 1: START CODE ENTRY -->
+      <div id="step-start" class="step-card active">
+        <div class="step-header">
+          <span>Step 1: On-Arrival Start Code Verification (PRD §12.7–10)</span>
+          <span id="badge-step-start" class="badge badge-yellow">REQUIRED TO START</span>
         </div>
-        <button id="btn-verify-start">Verify Start Code</button>
+        <p style="font-size: 13px;">Upon reaching the senior's residence, request the 8-character <strong>Start Code</strong> provided in their confirmation email:</p>
+        <div class="form-group" style="max-width: 260px;">
+          <input type="text" id="input-start-code" placeholder="Enter Start Code (e.g. 8 chars)" style="font-size: 16px; letter-spacing: 2px; text-transform: uppercase;">
+        </div>
+        <button id="btn-verify-start">Authorize & Start Visit</button>
       </div>
 
-      <!-- 20-Point Assessment Step -->
-      <div id="assessment-step" class="hidden" style="margin-top: 20px;">
-        <h3>Clinical Assessment (20 Points)</h3>
+      <!-- STEP 2: 20-POINT CLINICAL ASSESSMENT -->
+      <div id="step-assessment" class="step-card hidden">
+        <div class="step-header">
+          <span>Step 2: 20-Point Clinical Assessment (PRD §15)</span>
+          <span id="badge-step-asm" class="badge badge-blue">IN PROGRESS</span>
+        </div>
         <form id="assessment-form">
           <div class="grid">
+            <div class="form-group"><label>1. Blood Pressure (e.g. 120/80)</label><input type="text" id="asm-bp" required></div>
+            <div class="form-group"><label>2. Heart Rate / Pulse (bpm)</label><input type="number" id="asm-hr" required></div>
+            <div class="form-group"><label>3. SpO2 (%)</label><input type="number" id="asm-spo2" required></div>
+            <div class="form-group"><label>4. Respiratory Rate (/min)</label><input type="number" id="asm-rr" value="16"></div>
+            <div class="form-group"><label>5. Temperature (°C)</label><input type="number" step="0.1" id="asm-temp" required></div>
+            <div class="form-group"><label>6. Fasting / Random Glucose (mg/dL)</label><input type="number" id="asm-sugar"></div>
+            <div class="form-group"><label>7. Weight (kg)</label><input type="number" step="0.5" id="asm-weight"></div>
+            <div class="form-group"><label>8. Pain Level (0–10)</label><input type="number" min="0" max="10" id="asm-pain" value="0"></div>
             <div class="form-group">
-              <label>Blood Pressure (e.g. 120/80)</label>
-              <input type="text" id="asm-bp" required>
+              <label>9. Fall Risk</label>
+              <select id="asm-fall"><option value="Low">Low</option><option value="Moderate">Moderate</option><option value="High">High</option></select>
             </div>
             <div class="form-group">
-              <label>Heart Rate (bpm)</label>
-              <input type="number" id="asm-hr" required>
+              <label>10. Mobility Status</label>
+              <select id="asm-mobility"><option value="Independent">Independent</option><option value="Assisted">Assisted</option><option value="Bedbound">Bedbound</option></select>
             </div>
             <div class="form-group">
-              <label>SpO2 (%)</label>
-              <input type="number" id="asm-spo2" required>
+              <label>11. Hydration</label>
+              <select id="asm-hydration"><option value="Adequate">Adequate</option><option value="Poor">Poor / Dehydrated</option></select>
             </div>
             <div class="form-group">
-              <label>Temperature (°C)</label>
-              <input type="number" step="0.1" id="asm-temp" required>
-            </div>
-            <div class="form-group">
-              <label>Blood Sugar (mg/dL)</label>
-              <input type="number" id="asm-sugar">
-            </div>
-            <div class="form-group">
-              <label>Pain Level (0-10)</label>
-              <input type="number" min="0" max="10" id="asm-pain">
+              <label>12. Medication Adherence</label>
+              <select id="asm-meds"><option value="Full">Full</option><option value="Partial">Partial / Missed</option><option value="None">Non-Adherent</option></select>
             </div>
           </div>
 
-          <div class="form-group">
-            <label>Nurse Clinical Notes</label>
-            <textarea id="asm-notes" rows="3"></textarea>
+          <div class="form-group" style="margin-top: 10px;">
+            <label>Nurse Clinical Observations & Notes (Items 13–20)</label>
+            <textarea id="asm-notes" rows="3" placeholder="Notes on mental/cognitive state, respiratory symptoms, edema, mood, skin integrity..."></textarea>
           </div>
 
-          <button type="submit">Submit Assessment</button>
+          <button type="submit">Save 20-Point Assessment</button>
         </form>
       </div>
 
-      <!-- End Code Step -->
-      <div id="end-code-step" class="hidden" style="margin-top: 20px;">
-        <h3>Complete Visit</h3>
-        <p>Ask the family for the <strong>End Code</strong> to verify completion:</p>
-        <div class="form-group">
-          <input type="text" id="end-code-input" placeholder="Enter End Code">
+      <!-- STEP 3: DOCTOR CONSULTATION CHECK -->
+      <div id="step-doctor" class="step-card hidden">
+        <div class="step-header">
+          <span>Step 3: Doctor Consultation & Clinical Escalation (PRD §16–17)</span>
+          <span id="badge-step-doc" class="badge badge-blue">CLINICAL CHECK</span>
         </div>
-        <button id="btn-verify-end">Complete Visit</button>
+        <p style="font-size: 13px;">Does this visit include a planned doctor consult, or do abnormal vitals require clinical escalation?</p>
+        
+        <div class="consult-box">
+          <label style="font-weight: 700;">Doctor Teleconsult Option:</label>
+          <p style="font-size: 12px; margin: 4px 0 10px 0;">If doctor appointment is scheduled with this visit, initiate teleconsult handoff and record completion:</p>
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <button id="btn-mark-consult" type="button" class="secondary">Record Doctor Consult Completed</button>
+            <span id="consult-status-indicator" style="font-size: 12px; color: #2b6cb0;">Pending review</span>
+          </div>
+        </div>
+
+        <div style="margin-top: 10px;">
+          <button id="btn-escalate-doctor" type="button" class="danger">Request Urgent Doctor Escalation</button>
+          <button id="btn-skip-consult" type="button" class="secondary" style="margin-left: 8px;">No Doctor Required (Proceed to Completion)</button>
+        </div>
+      </div>
+
+      <!-- STEP 4: END CODE VERIFICATION -->
+      <div id="step-end" class="step-card hidden">
+        <div class="step-header">
+          <span>Step 4: End Code Visit Completion (PRD §12.11–15)</span>
+          <span id="badge-step-end" class="badge badge-yellow">FINAL AUTHORIZATION</span>
+        </div>
+        <p style="font-size: 13px;">Service complete. Request the 8-character <strong>End Code</strong> from the senior or family to verify completion:</p>
+        <div class="form-group" style="max-width: 260px;">
+          <input type="text" id="input-end-code" placeholder="Enter End Code" style="font-size: 16px; letter-spacing: 2px; text-transform: uppercase;">
+        </div>
+        <button id="btn-verify-end">Verify End Code & Complete Visit</button>
       </div>
     </div>
   </main>
