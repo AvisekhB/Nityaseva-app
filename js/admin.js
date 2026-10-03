@@ -121,9 +121,10 @@ function renderWorkOrders(orders) {
 
   [...orders].reverse().forEach(wo => {
     const tr = document.createElement('tr');
-    const badgeColor = wo.status === 'COMPLETED' ? 'badge-green' : 
+    const badgeColor = wo.status === 'COMPLETE' || wo.status === 'CLOSE' ? 'badge-green' : 
                       (wo.status === 'IN_PROGRESS' ? 'badge-yellow' : 
-                      (wo.status === 'CANCELLED' ? 'badge-red' : 'badge-blue'));
+                      ${wo.status !== 'CANCELLED' && wo.status !== 'COMPLETE' && wo.status !== 'CLOSE'
+
 
     let displayTime = '-';
     if (wo.created_at) {
