@@ -2,14 +2,13 @@ import { requireAuth, signOut } from './auth.js';
 import { callApi } from './dataService.js';
 
 let currentProfile = null;
-let activeWorkOrderId = null;
-let activeSeniorId = null;
+let activeWO = null;
 
 async function init() {
   currentProfile = await requireAuth('nurse');
   if (!currentProfile) return;
 
-  document.getElementById('user-display').textContent = currentProfile.full_name || 'Nurse';
+  document.getElementById('user-display').textContent = currentProfile.full_name || 'Nurse ' + currentProfile.email;
   document.getElementById('btn-logout').addEventListener('click', signOut);
 
   await loadNurseWorkOrders();
@@ -17,114 +16,204 @@ async function init() {
 
 async function loadNurseWorkOrders() {
   try {
-    const data = await callApi('getNurseDashboard', { staffId: currentProfile.staff_id || currentProfile.id });
+    const data = await callApi('getNurseDashboard', { staffId: currentProfile.staff_id || '' });
     const tbody = document.querySelector('#nurse-wo-table tbody');
     tbody.innerHTML = '';
 
-    if (data.workOrders && data.workOrders.length > 0) {
-      data.workOrders.forEach(wo => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td><strong>${wo.work_order_id}</strong></td>
-          <td>${wo.senior_id}</td>
-          <td>${wo.type}</td>
-          <td><span class="badge ${wo.status === 'IN_PROGRESS' ? 'badge-yellow' : 'badge-blue'}">${wo.status}</span></td>
-          <td><button class="select-wo" data-id="${wo.work_order_id}" data-senior="${wo.senior_id}" data-status="${wo.status}">Open</button></td>
-        `;
-        tbody.appendChild(tr);
-      });
-
-      document.querySelectorAll('.select-wo').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          activeWorkOrderId = e.target.getAttribute('data-id');
-          activeSeniorId = e.target.getAttribute('data-senior');
-          const status = e.target.getAttribute('data-status');
-          openWorkspace(status);
-        });
-      });
-    } else {
-      tbody.innerHTML = '<tr><td colspan="5">No active work orders assigned.</td></tr>';
+    const orders = data.workOrders || [];
+    if (orders.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5">No active work orders assigned to you.</td></tr>';
+      return;
     }
+
+    orders.forEach(wo => {
+      const tr = document.createElement('tr');
+      const badgeClass = wo.status === 'COMPLETE' ? 'badge-green' : (wo.status === 'IN_PROGRESS' ? 'badge-yellow' : 'badge-blue');
+
+      let displayTime = wo.created_at || '-';
+      try {
+        if (wo.created_at) {
+          displayTime = new Date(wo.created_at).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' });
+        }
+      } catch (e) {}
+
+      tr.innerHTML = `
+        <td><strong>${wo.work_order_id}</strong></td>
+        <td><code>${wo.senior_id}</code></td>
+        <td>${displayTime}</td>
+        <td><span class="badge ${badgeClass}">${wo.status}</span></td>
+        <td><button class="open-wo-btn" data-id="${wo.work_order_id}">Open Workspace</button></td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    document.querySelectorAll('.open-wo-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = e.target.getAttribute('data-id');
+        const match = orders.find(w => w.work_order_id === id);
+        if (match) openVisitWorkspace(match);
+      });
+    });
+
   } catch (err) {
-    alert('Error loading work orders: ' + err.message);
+    alert('Error loading assigned visits: ' + err.message);
   }
 }
 
-function openWorkspace(status) {
-  document.getElementById('visit-workspace').classList.remove('hidden');
-  document.getElementById('active-wo-id').textContent = activeWorkOrderId;
+function openVisitWorkspace(wo) {
+  activeWO = wo;
+  const workspace = document.getElementById('visit-workspace');
+  workspace.classList.remove('hidden');
 
-  const startStep = document.getElementById('start-code-step');
-  const asmStep = document.getElementById('assessment-step');
-  const endStep = document.getElementById('end-code-step');
+  document.getElementById('active-wo-id').textContent = wo.work_order_id;
+  document.getElementById('active-senior-name').textContent = wo.senior_id;
+  document.getElementById('active-lifecycle-badge').textContent = wo.status;
 
-  if (status === 'IN_PROGRESS') {
-    startStep.classList.add('hidden');
-    asmStep.classList.remove('hidden');
-    endStep.classList.remove('hidden');
+  const stepStart = document.getElementById('step-start');
+  const stepAsm = document.getElementById('step-assessment');
+  const stepDoc = document.getElementById('step-doctor');
+  const stepEnd = document.getElementById('step-end');
+
+  if (wo.status === 'IN_PROGRESS') {
+    stepStart.className = 'step-card done';
+    document.getElementById('badge-step-start').textContent = 'VERIFIED';
+    document.getElementById('badge-step-start').className = 'badge badge-green';
+
+    stepAsm.classList.remove('hidden');
+    stepAsm.className = 'step-card active';
+    stepDoc.classList.remove('hidden');
+    stepEnd.classList.remove('hidden');
   } else {
-    startStep.classList.remove('hidden');
-    asmStep.classList.add('hidden');
-    endStep.classList.add('hidden');
+    stepStart.className = 'step-card active';
+    document.getElementById('badge-step-start').textContent = 'REQUIRED TO START';
+    document.getElementById('badge-step-start').className = 'badge badge-yellow';
+
+    stepAsm.classList.add('hidden');
+    stepDoc.classList.add('hidden');
+    stepEnd.classList.add('hidden');
   }
+
+  workspace.scrollIntoView({ behavior: 'smooth' });
 }
 
+// 1. Verify Start Code
 document.getElementById('btn-verify-start').addEventListener('click', async () => {
-  const code = document.getElementById('start-code-input').value.trim();
-  if (!code) return alert('Enter Start Code');
+  const code = document.getElementById('input-start-code').value.trim();
+  if (!code) return alert('Please enter the Start Code provided by the senior/family.');
 
   try {
-    const res = await callApi('verifyStartCode', { workOrderId: activeWorkOrderId, code: code });
+    const res = await callApi('verifyStartCode', {
+      workOrderId: activeWO.work_order_id,
+      code: code
+    });
+
     if (res.success) {
-      alert('Start code verified! Visit marked IN_PROGRESS.');
-      openWorkspace('IN_PROGRESS');
-      loadNurseWorkOrders();
+      alert('Start Code Verified! Work order is now IN_PROGRESS.');
+      activeWO.status = 'IN_PROGRESS';
+      openVisitWorkspace(activeWO);
+      await loadNurseWorkOrders();
     } else {
-      alert(res.error || 'Invalid code');
+      alert(res.error || 'Verification failed');
     }
   } catch (err) {
-    alert(err.message);
+    alert('Verification error: ' + err.message);
   }
 });
 
+// 2. Submit 20-Point Assessment
 document.getElementById('assessment-form').addEventListener('submit', async (e) => {
   e.preventDefault();
+
   try {
     const payload = {
-      senior_id: activeSeniorId,
-      visit_id: activeWorkOrderId,
-      bp: document.getElementById('asm-bp').value,
+      senior_id: activeWO.senior_id,
+      visit_id: activeWO.work_order_id,
+      bp: document.getElementById('asm-bp').value.trim(),
       heart_rate: Number(document.getElementById('asm-hr').value),
       spo2: Number(document.getElementById('asm-spo2').value),
+      respiratory_rate: Number(document.getElementById('asm-rr').value),
       temperature: Number(document.getElementById('asm-temp').value),
       blood_sugar: Number(document.getElementById('asm-sugar').value || 0),
+      weight: Number(document.getElementById('asm-weight').value || 0),
       pain_level: Number(document.getElementById('asm-pain').value || 0),
-      nurse_notes: document.getElementById('asm-notes').value
+      fall_risk: document.getElementById('asm-fall').value,
+      mobility: document.getElementById('asm-mobility').value,
+      hydration: document.getElementById('asm-hydration').value,
+      medication_adherence: document.getElementById('asm-meds').value,
+      nurse_notes: document.getElementById('asm-notes').value.trim()
     };
 
     const res = await callApi('saveAssessment', payload);
-    alert('Assessment saved successfully!' + (res.flagged ? ' Note: Values flagged for doctor review.' : ''));
-    document.getElementById('end-code-step').classList.remove('hidden');
+
+    alert('20-Point Assessment saved to record!' + (res.flagged ? ' Note: Values flagged for clinical review.' : ''));
+    document.getElementById('step-assessment').className = 'step-card done';
+    document.getElementById('badge-step-asm').textContent = 'COMPLETED';
+    document.getElementById('badge-step-asm').className = 'badge badge-green';
+
+    document.getElementById('step-doctor').className = 'step-card active';
   } catch (err) {
     alert('Failed to save assessment: ' + err.message);
   }
 });
 
-document.getElementById('btn-verify-end').addEventListener('click', async () => {
-  const code = document.getElementById('end-code-input').value.trim();
-  if (!code) return alert('Enter End Code');
+// 3. Doctor Consult Handlers
+document.getElementById('btn-mark-consult').addEventListener('click', async () => {
+  const notes = prompt('Enter brief summary of doctor consultation:');
+  try {
+    await callApi('markDoctorConsultDone', {
+      workOrderId: activeWO.work_order_id,
+      notes: notes || 'Doctor teleconsult concluded'
+    });
+    document.getElementById('consult-status-indicator').textContent = '✓ Consult completed and logged';
+    document.getElementById('consult-status-indicator').style.color = '#38a169';
+  } catch (err) {
+    alert('Could not update consult status: ' + err.message);
+  }
+});
+
+document.getElementById('btn-escalate-doctor').addEventListener('click', async () => {
+  const reason = prompt('State clinical reason for urgent doctor review:');
+  if (!reason) return;
 
   try {
-    const res = await callApi('verifyEndCode', { workOrderId: activeWorkOrderId, code: code });
+    await callApi('createDoctorReviewRequest', {
+      seniorId: activeWO.senior_id,
+      workOrderId: activeWO.work_order_id,
+      reason: reason,
+      priority: 'URGENT'
+    });
+    alert('Clinical escalation submitted to doctor queue.');
+  } catch (err) {
+    alert('Escalation error: ' + err.message);
+  }
+});
+
+document.getElementById('btn-skip-consult').addEventListener('click', () => {
+  document.getElementById('step-doctor').className = 'step-card done';
+  document.getElementById('step-end').className = 'step-card active';
+  document.getElementById('input-end-code').focus();
+});
+
+// 4. Verify End Code
+document.getElementById('btn-verify-end').addEventListener('click', async () => {
+  const code = document.getElementById('input-end-code').value.trim();
+  if (!code) return alert('Please enter the End Code provided by the senior/family to complete this visit.');
+
+  try {
+    const res = await callApi('verifyEndCode', {
+      workOrderId: activeWO.work_order_id,
+      code: code
+    });
+
     if (res.success) {
-      alert('End code verified! Visit COMPLETED.');
+      alert('End Code Verified! Work order marked COMPLETE. Care report logged.');
       document.getElementById('visit-workspace').classList.add('hidden');
-      loadNurseWorkOrders();
+      await loadNurseWorkOrders();
     } else {
-      alert(res.error || 'Invalid code');
+      alert(res.error || 'Completion authorization failed');
     }
   } catch (err) {
-    alert(err.message);
+    alert('Verification error: ' + err.message);
   }
 });
 
